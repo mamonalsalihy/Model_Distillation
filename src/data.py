@@ -1,14 +1,25 @@
-import copy
 import logging
-from typing import Dict, Iterable, List, cast
+from itertools import islice
+from typing import Dict, Iterable
 
+# AllenNLP
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import Field, LabelField, TextField
+
+# Data types
+from allennlp.data.fields import Field, TextField
 from allennlp.data.instance import Instance
+
+# Indexers
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.token_indexers.token_indexer import TokenIndexer
+
+# Tokenizers
 from allennlp.data.tokenizers import Token, WhitespaceTokenizer
+from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
+
+# Local
+from tokenizer import WikiTextTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +51,7 @@ class WikiTextReader(DatasetReader):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self._sentence_splitter = SpacySentenceSplitter(rule_based=True)
         self._tokenizer = tokenizer or WhitespaceTokenizer()
         self._targets_tokenizer = self._tokenizer
         self._token_indexers = token_indexers or {
@@ -52,7 +64,7 @@ class WikiTextReader(DatasetReader):
         with open(file_path, "r") as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
-                    yield from self.generate_instances(line.replace("\n", "<eos>"))
+                    yield from self.generate_instances(line)
 
     def generate_instances(self, text: str) -> Iterable[Instance]:
         """Generates instances of a certain context size given the available text
@@ -69,10 +81,12 @@ class WikiTextReader(DatasetReader):
         """
         # tokenize the text, and slide a `self._context` sized window over the tokens
         # , using the (n+1)th token as a target.
-        tokens = self._tokenizer.tokenize(text)
-        for start in range(len(tokens) - self._context):
-            width = start + self._context
-            yield self.text_to_instance(tokens[start : width + 1])
+        sentences = self._sentence_splitter.split_sentences(text)
+        for sent in sentences:
+            tokens = self._tokenizer.tokenize(sent)
+            for start in range(len(tokens) - self._context):
+                width = start + self._context
+                yield self.text_to_instance(tokens[start : width + 1])
 
     def text_to_instance(
         self,
@@ -91,12 +105,17 @@ class WikiTextReader(DatasetReader):
             Instance containing a `tokens` field and a `target` field.
         """
 
-        input_field = TextField(tokens[:-1], self._token_indexers)
-        target_field = TextField(tokens[-1:], self._token_indexers)
-        fields: Dict[str, Field] = {"tokens": input_field, "target": target_field}
+        input_field = TextField(tokens, self._token_indexers)
+        fields: Dict[str, Field] = {"tokens": input_field}
         return Instance(fields)
 
 
 if __name__ == "__main__":
-    reader = WikiTextReader(100)
-    dataset = list(reader.read("../wikitext-103/wiki.mini.tokens"))
+    wiki_tokenizer = WikiTextTokenizer(
+        tokenizer_path="../data/wikitext-tokenizer.json",
+        add_special_tokens=True,
+    )
+    reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
+    dataset = reader.read("../data/wikitext-103/wiki.train.raw")
+    for i in islice(dataset, 4):
+        print(i)

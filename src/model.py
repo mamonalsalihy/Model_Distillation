@@ -1,4 +1,5 @@
 # STL
+from itertools import islice
 from typing import Dict
 
 import numpy
@@ -7,11 +8,9 @@ import numpy
 import torch
 
 # AllenNLP
-from allennlp.data import Instance, Token, Vocabulary
+from allennlp.data import Vocabulary
 from allennlp.data.data_loaders import SimpleDataLoader
-from allennlp.data.fields import LabelField, TextField
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 
 # Models
 from allennlp.models import Model
@@ -29,6 +28,7 @@ from allennlp.training.metrics import Perplexity
 
 # Local
 from data import WikiTextReader
+from tokenizer import WikiTextTokenizer
 
 
 @Model.register("language-model")
@@ -110,14 +110,22 @@ class LanguageModel(Model):
 
 
 if __name__ == "__main__":
-    reader = WikiTextReader(100)
-    instances = list(reader.read("../data/wikitext-103/wiki.mini.tokens"))[:5]
-    # generates a vocabulary from the file
-    vocab = Vocabulary.from_instances(instances)
+    wiki_tokenizer = WikiTextTokenizer(
+        tokenizer_path="../data/wikitext-tokenizer.json",
+        add_special_tokens=True,
+    )
+    reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
+    dataset = reader.read("../data/wikitext-103/wiki.train.raw")
+
+    # Generates a vocabulary from the files
+    vocab = Vocabulary.from_files("../data/vocab", padding_token="[PAD]", oov_token="[UNK]")
+
     # creates an embedder, needs the number of items in the vocab
     embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=20)
     embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
-    data_loader = SimpleDataLoader(instances, batch_size=2, vocab=vocab)
+
+    # DataLoader
+    data_loader = SimpleDataLoader(dataset, batch_size=2, vocab=vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -127,4 +135,4 @@ if __name__ == "__main__":
         num_attention_heads=1,
     )
     for i, batch in zip(range(2), data_loader):
-        model(**batch)
+        print(model(**batch))

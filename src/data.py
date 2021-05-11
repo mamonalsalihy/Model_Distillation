@@ -1,19 +1,25 @@
 import logging
+from itertools import islice
 from typing import Dict, Iterable
 
-from tokenizer import WikitextTokenizer
-
-# AllenNLP stuff
+# AllenNLP
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
+
+# Data types
 from allennlp.data.fields import Field, TextField
 from allennlp.data.instance import Instance
+
+# Indexers
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.token_indexers.token_indexer import TokenIndexer
-from allennlp.data.tokenizers import Token, WhitespaceTokenizer, PretrainedTransformerTokenizer
-from allennlp.data.tokenizers.tokenizer import Tokenizer
-from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 
-from itertools import islice
+# Tokenizers
+from allennlp.data.tokenizers import Token, WhitespaceTokenizer
+from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
+from allennlp.data.tokenizers.tokenizer import Tokenizer
+
+# Local
+from tokenizer import WikiTextTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +111,7 @@ class WikiTextReader(DatasetReader):
 
 
 if __name__ == "__main__":
-    wiki_tokenizer = WikitextTokenizer(
+    wiki_tokenizer = WikiTextTokenizer(
         tokenizer_path="../data/wikitext-tokenizer.json",
         add_special_tokens=True,
     )

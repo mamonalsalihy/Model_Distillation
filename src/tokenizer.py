@@ -1,20 +1,19 @@
 import logging
-from typing import List, Optional
+from typing import List
 
+# AllenNLP
+from allennlp.data.tokenizers.token_class import Token
+from allennlp.data.tokenizers.tokenizer import Tokenizer
 from overrides import overrides
 
 # Huggingface tokenizer
 from tokenizers import Tokenizer as HFTokenizer
 
-# AllenNLP
-from allennlp.data.tokenizers.token_class import Token
-from allennlp.data.tokenizers.tokenizer import Tokenizer
-
 logger = logging.getLogger(__name__)
 
 
 @Tokenizer.register("wikitext-tokenizer")
-class WikitextTokenizer(Tokenizer):
+class WikiTextTokenizer(Tokenizer):
     """An AllenNLP wrapper around a Huggingface tokenizer.
     Registered as a `Tokenizer` with name "wikitext-tokenizer".
 

@@ -118,7 +118,7 @@ if __name__ == "__main__":
     dataset = reader.read("../data/wikitext-103/wiki.train.raw")
 
     # Generates a vocabulary from the files
-    vocab = Vocabulary.from_files("../data/vocab")
+    vocab = Vocabulary.from_files("../data/vocab", padding_token="[PAD]", oov_token="[UNK]")
 
     # creates an embedder, needs the number of items in the vocab
     embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=20)

@@ -36,13 +36,13 @@ python -m venv <name-of-venv>
 source ./<name-of-venv>/bin/activate
 ```
 4. Install requirements
- ```bash
- # with pipenv (to be used with pipenv virtual environment)
- pipenv sync
- 
- # with pip
- pip install -r requirements.txt
- ```
+```bash
+# with pipenv (to be used with pipenv virtual environment)
+pipenv sync
+
+# with pip
+pip install -r requirements.txt
+```
 5. Run setup scripts
 ```bash
 # train the tokenizer

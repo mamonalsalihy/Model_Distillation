@@ -1,34 +1,37 @@
 # STL
-from itertools import islice
 from typing import Dict
-
-import numpy
 
 # Utilities
 import torch
+import numpy
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # AllenNLP
-from allennlp.data import Vocabulary
+from allennlp.data import Instance, Token, Vocabulary
 from allennlp.data.data_loaders import SimpleDataLoader
+from allennlp.data.fields import TextField, LabelField
 from allennlp.data.fields.text_field import TextFieldTensors
+from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import Embedding, TextFieldEmbedder
 
-# Layers
-from allennlp.modules.attention import Attention
-from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
-from allennlp.modules.transformer import TransformerLayer
-from allennlp.nn.activations import Activation
-from allennlp.nn.util import get_text_field_mask
+# Inference
+from allennlp.predictors.predictor import Predictor
 
 # Training
 from allennlp.training.metrics import Perplexity
+from allennlp.training.trainer import GradientDescentTrainer, Trainer
+
+# Layers
+from allennlp.modules.attention import Attention
+from allennlp.modules.transformer import TransformerLayer
+from allennlp.modules import Embedding, TextFieldEmbedder
+from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.nn.activations import Activation
 
 # Local
 from data import WikiTextReader
-from tokenizer import WikiTextTokenizer
 
 
 @Model.register("language-model")
@@ -49,6 +52,7 @@ class LanguageModel(Model):
 
         self.embedder = embedder
         self.activation = Activation.by_name(activation)()
+        # question: what is intermediate size?
         self.transformer = TransformerLayer(
             hidden_size=hidden_size,
             intermediate_size=intermediate_size,
@@ -58,6 +62,11 @@ class LanguageModel(Model):
             activation=self.activation,
             add_cross_attention=cross_attention,
         )
+
+        # linear layer that maps the last last transformer layer to logits for each word
+        self.vocab_size = vocab.get_vocab_size()
+        self.linear = torch.nn.Linear(hidden_size, self.vocab_size)
+
         self.metric = Perplexity()
 
     def forward(
@@ -66,20 +75,42 @@ class LanguageModel(Model):
         target: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
 
+        # shape (batch_size, timesteps)
+        token_ids = tokens['tokens']['tokens']
+
+        # get source and targets from tokens
+        source = token_ids[:, 0:-1]
+        target = token_ids[:, 1:]
+
         # do embedding stuff here
         # shape (batch_size, timesteps, embedding_size)
         embeddings = self.embedder(tokens)
 
+        # get the first part of the window
+        source_embeddings = embeddings[:, 0:-1, :]
         # do processing stuff here
-        # print(f"tokens: {tokens}")
-        # print(f"target: {target}")
-        mask = get_text_field_mask(tokens)
-        # return logits, maybe calculate loss?
-        logits = self.transformer(embeddings, mask)
-        # probs = torch.softmax(logits, dim=1)
+        mask = get_text_field_mask(tokens)[:, 0:-1]
+        # calculate logits of the next context
+        trans_out = self.transformer(source_embeddings, mask)[0]
 
-        self.metric(logits, target)
-        return {"logits": logits}
+        # shape (batch_size, timesteps, vocab_size)
+        logits = self.linear(trans_out)
+
+        probs = torch.nn.functional.softmax(logits, dim=2)
+
+        # reshape them because they aren't contiguous in memory
+        # unsure why this issue exists in AllenNLP
+        # https://discuss.pytorch.org/t/contigious-vs-non-contigious-tensor/30107
+        preds = logits.reshape(-1, self.vocab_size)
+        target = target.reshape(-1)
+
+        # need to pass pad idx so we can ignore this, unsure how to achieve this in AllenNLP
+        loss = torch.nn.functional.cross_entropy(preds, target)
+
+        # calculates the perplexity for the model
+        self.metric(loss)
+
+        return {"logits": logits, "loss": loss, 'probs': probs}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]
@@ -110,22 +141,14 @@ class LanguageModel(Model):
 
 
 if __name__ == "__main__":
-    wiki_tokenizer = WikiTextTokenizer(
-        tokenizer_path="../data/wikitext-tokenizer.json",
-        add_special_tokens=True,
-    )
-    reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
-    dataset = reader.read("../data/wikitext-103/wiki.train.raw")
-
-    # Generates a vocabulary from the files
-    vocab = Vocabulary.from_files("../data/vocab", padding_token="[PAD]", oov_token="[UNK]")
-
+    reader = WikiTextReader(100)
+    instances = list(reader.read("../data/wikitext-103/wiki.mini.tokens"))
+    # generates a vocabulary from the file
+    vocab = Vocabulary.from_instances(instances)
     # creates an embedder, needs the number of items in the vocab
     embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=20)
     embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
-
-    # DataLoader
-    data_loader = SimpleDataLoader(dataset, batch_size=2, vocab=vocab)
+    data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -134,5 +157,16 @@ if __name__ == "__main__":
         intermediate_size=50,
         num_attention_heads=1,
     )
-    for i, batch in zip(range(2), data_loader):
-        print(model(**batch))
+
+    trainer = GradientDescentTrainer(
+        model=model.cuda(),
+        data_loader=data_loader,
+        num_epochs=5,
+        optimizer=torch.optim.Adam(model.parameters()),
+    )
+
+    trainer.train()
+
+    pred = Predictor(model, data_loader)
+    output = pred.predict_instance('I am a god.')
+    print(output)

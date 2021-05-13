@@ -19,11 +19,7 @@ Installation
 ```bash
 git clone https://github.com/mamonalsalihy/Model-Distillation
 ```
-2. Download and store WikiText-103 in the data directory.
-```bash
-python ./scripts/download_wikitext103.py
-```
-3. Start up a virtual environment (optional)
+2. Start up a virtual environment (optional)
 ```bash
 # with pipenv
 pipenv --python 3.9  # or other version
@@ -32,7 +28,7 @@ pipenv --python 3.9  # or other version
 python -m venv <name-of-venv>
 source ./<name-of-venv>/bin/activate
 ```
-4. Install requirements
+3. Install requirements
  ```bash
  # with pipenv (to be used with pipenv virtual environment)
  pipenv sync
@@ -40,8 +36,11 @@ source ./<name-of-venv>/bin/activate
  # with pip
  pip install -r requirements.txt
  ```
-5. Run setup scripts
+4. Run setup scripts
 ```bash
+# Downloads and stores WikiText-103 to data directory
+python ./scripts/download_wikitext103.py
+
 # train the tokenizer
 python ./scripts/train_tokenizer.py
 

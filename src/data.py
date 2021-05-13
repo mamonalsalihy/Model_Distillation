@@ -61,7 +61,7 @@ class WikiTextReader(DatasetReader):
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
-        with open(file_path, "r") as f:
+        with open(file_path, "r",encoding='utf8') as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)

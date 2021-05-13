@@ -10,7 +10,7 @@ if __name__ == "__main__":
     tokenizer.pre_tokenizer = Whitespace()
 
     # ignore validation and test data
-    files = [f"../data/wikitext-103/wiki.{split}.raw" for split in ["train"]]
+    files = [f"../data/wikitext-103-raw/wiki.{split}.raw" for split in ["train"]]
 
     # train on just the train data
     tokenizer.train(files, trainer)

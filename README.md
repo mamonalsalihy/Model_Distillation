@@ -15,16 +15,13 @@ model/distillation technique for large language models.
 
 Installation
 ------------
-1. Clone the repository and setup the data directory
+1. Clone the repository
 ```bash
 git clone https://github.com/mamonalsalihy/Model-Distillation
-cd Model-Distillation
-mkdir -p ./data/vocab
 ```
-2. Download the raw WikiText-103 data from their website, and unzip into the data directory.
+2. Download and store WikiText-103 in the data directory.
 ```bash
-wget https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip
-unzip wikitext-103-v1.zip -d ./data/
+python ./scripts/download_wikitext103.py
 ```
 3. Start up a virtual environment (optional)
 ```bash

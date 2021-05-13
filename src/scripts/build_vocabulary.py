@@ -3,7 +3,8 @@ from allennlp.data import Vocabulary
 
 # Local
 import sys
-sys.path.append('../src/')
+
+sys.path.append("../src/")
 from tokenizer import WikiTextTokenizer
 
 

@@ -141,32 +141,4 @@ class LanguageModel(Model):
 
 
 if __name__ == "__main__":
-    reader = WikiTextReader(100)
-    instances = list(reader.read("../data/wikitext-103/wiki.mini.tokens"))
-    # generates a vocabulary from the file
-    vocab = Vocabulary.from_instances(instances)
-    # creates an embedder, needs the number of items in the vocab
-    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=20)
-    embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
-    data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
-
-    model = LanguageModel(
-        vocab=vocab,
-        embedder=embedder,
-        hidden_size=20,
-        intermediate_size=50,
-        num_attention_heads=1,
-    )
-
-    trainer = GradientDescentTrainer(
-        model=model.cuda(),
-        data_loader=data_loader,
-        num_epochs=5,
-        optimizer=torch.optim.Adam(model.parameters()),
-    )
-
-    trainer.train()
-
-    pred = Predictor(model, data_loader)
-    output = pred.predict_instance('I am a god.')
-    print(output)
+    # all of these experiments are in main now

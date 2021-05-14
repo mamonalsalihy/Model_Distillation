@@ -116,6 +116,6 @@ if __name__ == "__main__":
         add_special_tokens=True,
     )
     reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
-    dataset = reader.read("../data/wikitext-103/wiki.train.raw")
+    dataset = reader.read("../data/wikitext-103-raw/wiki.train.raw")
     for i in islice(dataset, 4):
         print(i)

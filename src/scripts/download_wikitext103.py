@@ -2,6 +2,9 @@ import wget
 import os
 import zipfile
 
+import sys; sys.path.append('../')
+from count import config
+
 
 def download(url, data_dir):
     """
@@ -27,4 +30,4 @@ def download(url, data_dir):
 if __name__ == '__main__':
     raw_character_level = 'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-raw-v1.zip'
     word_level = 'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip'
-    download(url=raw_character_level, data_dir='../../data')
+    download(url=raw_character_level, data_dir=config.DATA_DIR)

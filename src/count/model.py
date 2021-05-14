@@ -138,3 +138,7 @@ class LanguageModel(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"perplexity": self.metric.get_metric(reset)}
+
+
+if __name__ == "__main__":
+    # all of these experiments are in main now

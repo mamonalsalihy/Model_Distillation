@@ -5,8 +5,11 @@ from tokenizers import normalizers
 from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer, WordLevelTrainer
 
 # Local
-import sys; sys.path.append('../')
+import sys
+
+sys.path.append("../")
 from count import tokenizer, config
+
 
 def train(
     algorithm: str = "bpe",
@@ -60,9 +63,10 @@ if __name__ == "__main__":
     ALGORITHM = "unigram"
     print(str(config.WIKI_RAW_DIR / "wiki.train.raw"))
     FILES = [str(config.WIKI_RAW_DIR / "wiki.train.raw")]
-    OUTPUT = config.TOKENIZER
-    VOCAB_SIZE = 30_000
-    PRE_TOKENIZERS = [pre_tokenizers.Whitespace(), pre_tokenizers.ByteLevel()]
+    OUTPUT = str(config.TOKENIZER)
+    VOCAB_SIZE = 32_000
+    PRE_TOKENIZERS = [pre_tokenizers.Whitespace(), pre_tokenizers.BertPreTokenizer()]
+    norms = [normalizers.BertNormalizer(lowercase=False)]
 
     train(
         algorithm=ALGORITHM,

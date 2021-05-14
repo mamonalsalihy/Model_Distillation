@@ -4,6 +4,7 @@ Hyperparameters should go in the AllenNLP config file, whenever we manage to get
 """
 
 from pathlib import Path
+import torch
 
 # Project root
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +17,7 @@ WIKI_RAW_DIR = ROOT / "data" / "wikitext-103-raw"
 
 # Parameters
 VOCAB_SIZE = 30_000
+DEVICE_1 = 0  # device number
 
 # Special tokens
 PAD = "[PAD]"

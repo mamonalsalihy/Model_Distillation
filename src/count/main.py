@@ -2,6 +2,7 @@
 import torch
 import numpy
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+from itertools import islice
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -65,6 +66,6 @@ if __name__ == "__main__":
     # ============
     trainer.train()
 
-    pred = Predictor(model, data_loader)
-    output = pred.predict_instance("I am a god.")
-    print(output)
+    # pred = Predictor(model, data_loader)
+    # output = pred.predict_instance("I am a god.")
+    # print(output)

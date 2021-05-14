@@ -32,6 +32,7 @@ from allennlp.nn.activations import Activation
 
 # Local
 from data import WikiTextReader
+import config
 
 
 @Model.register("language-model")
@@ -72,11 +73,10 @@ class LanguageModel(Model):
     def forward(
         self,
         tokens: TextFieldTensors,
-        target: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
 
         # shape (batch_size, timesteps)
-        token_ids = tokens['tokens']['tokens']
+        token_ids = tokens["tokens"]["tokens"]
 
         # get source and targets from tokens
         source = token_ids[:, 0:-1]
@@ -110,7 +110,7 @@ class LanguageModel(Model):
         # calculates the perplexity for the model
         self.metric(loss)
 
-        return {"logits": logits, "loss": loss, 'probs': probs}
+        return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]
@@ -126,10 +126,10 @@ class LanguageModel(Model):
         Dict[str, torch.Tensor]:
             Same as input dictionary, but with another key `label` indicating the predicted label
         """
-        # Take the logits from the forward pass, and compute the label
-        # IDs for maximum values
+        # Take the logits from the forward pass, and compute the label IDs for maximum values
         logits = output_dict["logits"].cpu().data.numpy()
         predicted_id: numpy.ndarray = numpy.argmax(logits, axis=-1)
+
         # Convert these IDs back to label strings using vocab
         output_dict["label"] = [
             self.vocab.get_token_from_index(x, namespace="tokens") for x in predicted_id
@@ -142,3 +142,4 @@ class LanguageModel(Model):
 
 if __name__ == "__main__":
     # all of these experiments are in main now
+    print("Run main.py for model training")

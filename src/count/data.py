@@ -20,6 +20,7 @@ from allennlp.data.tokenizers.tokenizer import Tokenizer
 
 # Local
 from tokenizer import WikiTextTokenizer
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -112,10 +113,10 @@ class WikiTextReader(DatasetReader):
 
 if __name__ == "__main__":
     wiki_tokenizer = WikiTextTokenizer(
-        tokenizer_path="../data/wikitext-tokenizer.json",
+        tokenizer_path=config.TOKENIZER,
         add_special_tokens=True,
     )
     reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
-    dataset = reader.read("../data/wikitext-103-raw/wiki.train.raw")
+    dataset = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
     for i in islice(dataset, 4):
         print(i)

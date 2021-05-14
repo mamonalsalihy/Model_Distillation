@@ -1,3 +1,8 @@
+""" Project configuration stuff, e.g. filepaths, special tokens, etc.
+
+Hyperparameters should go in the AllenNLP config file, whenever we manage to get that working.
+"""
+
 from pathlib import Path
 
 # Project root
@@ -5,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Paths
 TOKENIZER = ROOT / "unigram-tokenizer.json"
-DATA_DIR  = ROOT / "data"
+DATA_DIR = ROOT / "data"
 VOCAB_DIR = ROOT / "data" / "vocab"
 WIKI_RAW_DIR = ROOT / "data" / "wikitext-103-raw"
 

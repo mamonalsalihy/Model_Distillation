@@ -3,7 +3,6 @@ import torch
 import numpy
 from itertools import islice
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
-from itertools import islice
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -60,6 +59,7 @@ if __name__ == "__main__":
         data_loader=data_loader,
         num_epochs=5,
         optimizer=torch.optim.Adam(model.parameters()),
+        cuda_device=config.DEVICE_1,
     )
 
     # Run training

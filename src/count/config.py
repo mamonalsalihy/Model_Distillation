@@ -4,7 +4,6 @@ Hyperparameters should go in the AllenNLP config file, whenever we manage to get
 """
 
 from pathlib import Path
-import torch
 
 # Project root
 ROOT = Path(__file__).resolve().parents[2]

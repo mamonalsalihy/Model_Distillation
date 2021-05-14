@@ -61,12 +61,15 @@ def train(
 
 if __name__ == "__main__":
     ALGORITHM = "unigram"
-    print(str(config.WIKI_RAW_DIR / "wiki.train.raw"))
     FILES = [str(config.WIKI_RAW_DIR / "wiki.train.raw")]
     OUTPUT = str(config.TOKENIZER)
     VOCAB_SIZE = 32_000
-    PRE_TOKENIZERS = [pre_tokenizers.Whitespace(), pre_tokenizers.BertPreTokenizer()]
-    norms = [normalizers.BertNormalizer(lowercase=False)]
+    PRE_TOKENIZERS = [
+        pre_tokenizers.Whitespace(),
+        pre_tokenizers.BertPreTokenizer(),
+        pre_tokenizers.Digits(individual_digits=False),
+    ]
+    NORMS = [normalizers.BertNormalizer(lowercase=False)]
 
     train(
         algorithm=ALGORITHM,
@@ -74,4 +77,5 @@ if __name__ == "__main__":
         output=OUTPUT,
         vocab_size=VOCAB_SIZE,
         pre=PRE_TOKENIZERS,
+        norms=NORMS,
     )

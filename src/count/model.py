@@ -72,7 +72,6 @@ class LanguageModel(Model):
     def forward(
         self,
         tokens: TextFieldTensors,
-        target: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
 
         # shape (batch_size, timesteps)
@@ -138,7 +137,3 @@ class LanguageModel(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"perplexity": self.metric.get_metric(reset)}
-
-
-if __name__ == "__main__":
-    # all of these experiments are in main now

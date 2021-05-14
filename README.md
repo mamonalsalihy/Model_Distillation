@@ -15,18 +15,11 @@ model/distillation technique for large language models.
 
 Installation
 ------------
-1. Clone the repository and setup the data directory
+1. Clone the repository
 ```bash
 git clone https://github.com/mamonalsalihy/Model-Distillation
-cd Model-Distillation
-mkdir -p ./data/vocab
 ```
-2. Download the raw WikiText-103 data from their website, and unzip into the data directory.
-```bash
-wget https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip
-unzip wikitext-103-v1.zip -d ./data/
-```
-3. Start up a virtual environment (optional)
+2. Start up a virtual environment (optional)
 ```bash
 # with pipenv
 pipenv --python 3.9  # or other version
@@ -35,7 +28,7 @@ pipenv --python 3.9  # or other version
 python -m venv <name-of-venv>
 source ./<name-of-venv>/bin/activate
 ```
-4. Install requirements
+3. Install requirements
  ```bash
  # with pipenv (to be used with pipenv virtual environment)
  pipenv sync
@@ -43,8 +36,11 @@ source ./<name-of-venv>/bin/activate
  # with pip
  pip install -r requirements.txt
  ```
-5. Run setup scripts
+4. Run setup scripts
 ```bash
+# Downloads and stores WikiText-103 to data directory
+python ./scripts/download_wikitext103.py
+
 # train the tokenizer
 python ./scripts/train_tokenizer.py
 

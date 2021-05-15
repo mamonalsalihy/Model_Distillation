@@ -5,6 +5,7 @@ import numpy
 
 # Utilities
 import torch
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary

@@ -1,6 +1,7 @@
 # Utilities
-import numpy
+import numpy as np
 import torch
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -12,7 +13,6 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 # Modules
 from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -38,10 +38,10 @@ if __name__ == "__main__":
     # Build reader
     # ============
     reader = WikiTextReader(
-        context=10,
+        context=50,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
-        max_instances=10000,
+        max_instances=100,
     )
 
     # Read vocabulary from vocabulary directory
@@ -65,17 +65,17 @@ if __name__ == "__main__":
     train_data_loader = MultiProcessDataLoader(
         reader=reader,
         data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
-        batch_size=4,
+        batch_size=16,
         shuffle=True,
     )
     train_data_loader.index_with(vocab)
-    valid_data_loader = MultiProcessDataLoader(
+    val_data_loader = MultiProcessDataLoader(
         reader=reader,
         data_path=config.WIKI_RAW_DIR / "wiki.valid.raw",
-        batch_size=4,
-        shuffle=True,
+        batch_size=16,
+        shuffle=False,
     )
-    valid_data_loader.index_with(vocab)
+    val_data_loader.index_with(vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     trainer = GradientDescentTrainer(
         model=model.cuda(),
-        data_loader=data_loader,
+        data_loader=train_data_loader,
         validation_metric="-perplexity",
         validation_data_loader=val_data_loader,
         num_epochs=20,

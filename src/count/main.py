@@ -2,6 +2,7 @@
 import torch
 import numpy
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+import os
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -29,8 +30,8 @@ from model import LanguageModel
 if __name__ == "__main__":
     # Build reader
     # ============
-    reader = WikiTextReader(100)
-    instances = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
+    reader = WikiTextReader(config.CONTEXT_WINDOW)
+    instances = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
 
     # Read vocabulary from vocabulary directory
     # =========================================
@@ -43,7 +44,7 @@ if __name__ == "__main__":
 
     # Setup model and training
     # ========================
-    data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
+    data_loader = SimpleDataLoader(instances, batch_size=config.BATCH_SIZE, vocab=vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     )
 
     trainer = GradientDescentTrainer(
-        model=model.cuda(),
+        model=model.to(config.DEVICE_1),
         data_loader=data_loader,
         num_epochs=5,
         optimizer=torch.optim.Adam(model.parameters()),

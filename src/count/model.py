@@ -38,16 +38,16 @@ import config
 @Model.register("language-model")
 class LanguageModel(Model):
     def __init__(
-        self,
-        vocab: Vocabulary,
-        embedder: TextFieldEmbedder,
-        hidden_size: int,
-        intermediate_size: int,
-        num_attention_heads: int,
-        att_dropout: float = 0.2,
-        hidden_dropout: float = 0.2,
-        activation: str = "relu",
-        cross_attention: bool = False,
+            self,
+            vocab: Vocabulary,
+            embedder: TextFieldEmbedder,
+            hidden_size: int,
+            intermediate_size: int,
+            num_attention_heads: int,
+            att_dropout: float = 0.2,
+            hidden_dropout: float = 0.2,
+            activation: str = "relu",
+            cross_attention: bool = False,
     ) -> None:
         super().__init__(vocab)
 
@@ -68,13 +68,15 @@ class LanguageModel(Model):
         self.vocab_size = vocab.get_vocab_size()
         self.linear = torch.nn.Linear(hidden_size, self.vocab_size)
 
+        self.normalizer = config.BATCH_SIZE * config.CONTEXT_WINDOW
+        self.dif_tokenizers_ratio = config.DIF_TOKENIZERS_RATIO
+
         self.metric = Perplexity()
 
     def forward(
-        self,
-        tokens: TextFieldTensors,
+            self,
+            tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
-
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 
@@ -105,15 +107,18 @@ class LanguageModel(Model):
         target = target.reshape(-1)
 
         # need to pass pad idx so we can ignore this, unsure how to achieve this in AllenNLP
-        loss = torch.nn.functional.cross_entropy(preds, target)
+        temp = torch.nn.functional.cross_entropy(preds, target, reduction='sum')
+        loss = temp / self.normalizer
 
-        # calculates the perplexity for the model
-        self.metric(loss)
+        new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
+
+        # calculates the perplexity for the model w.r.t new normalizer
+        self.metric(new_normalized)
 
         return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
-        self, output_dict: Dict[str, torch.Tensor]
+            self, output_dict: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Takes logits from `forward` and computes the corresponding label
 

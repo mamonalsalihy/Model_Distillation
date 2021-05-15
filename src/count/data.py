@@ -1,4 +1,5 @@
 import logging
+import os
 from itertools import islice
 from typing import Dict, Iterable
 
@@ -45,11 +46,11 @@ class WikiTextReader(DatasetReader):
     """
 
     def __init__(
-        self,
-        context: int,
-        tokenizer: Tokenizer = None,
-        token_indexers: Dict[str, TokenIndexer] = None,
-        **kwargs,
+            self,
+            context: int,
+            tokenizer: Tokenizer = None,
+            token_indexers: Dict[str, TokenIndexer] = None,
+            **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self._sentence_splitter = SpacySentenceSplitter(rule_based=True)
@@ -62,7 +63,7 @@ class WikiTextReader(DatasetReader):
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
-        with open(file_path, "r",encoding='utf8') as f:
+        with open(file_path, "r", encoding='utf8') as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
@@ -87,11 +88,11 @@ class WikiTextReader(DatasetReader):
             tokens = self._tokenizer.tokenize(sent)
             for start in range(len(tokens) - self._context):
                 width = start + self._context
-                yield self.text_to_instance(tokens[start : width + 1])
+                yield self.text_to_instance(tokens[start: width + 1])
 
     def text_to_instance(
-        self,
-        tokens: Iterable[Token],
+            self,
+            tokens: Iterable[Token],
     ) -> Instance:
         """Converts a list of `Token`s into an `Instance`
 
@@ -117,6 +118,6 @@ if __name__ == "__main__":
         add_special_tokens=True,
     )
     reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
-    dataset = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
+    dataset = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
     for i in islice(dataset, 4):
         print(i)

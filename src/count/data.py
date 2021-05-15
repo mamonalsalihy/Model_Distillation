@@ -18,13 +18,15 @@ from allennlp.data.tokenizers import Token, WhitespaceTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 
+import config
+
 # Local
 from tokenizer import WikiTextTokenizer
-import config
 
 logger = logging.getLogger(__name__)
 
 
+@DatasetReader.register("wikitext-reader")
 class WikiTextReader(DatasetReader):
     """
     Creates `Instances` suitable for use in predicting a single next token using a language

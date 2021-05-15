@@ -1,19 +1,18 @@
 # Utilities
-import torch
 import numpy
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
-from itertools import islice
+import torch
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
-from allennlp.data.data_loaders import SimpleDataLoader
-from allennlp.data.fields import TextField, LabelField
+from allennlp.data.data_loaders import SimpleDataLoader, MultiProcessDataLoader
+from allennlp.data.fields import LabelField, TextField
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
+from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 
 # Modules
 from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -23,15 +22,28 @@ from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
 # Local
-from data import WikiTextReader
 import config
+from data import WikiTextReader
+from tokenizer import WikiTextTokenizer
 from model import LanguageModel
 
 if __name__ == "__main__":
+    # Build tokenizer
+    # ===============
+    wiki_tokenizer = WikiTextTokenizer(
+        tokenizer_path=str(config.TOKENIZER),
+        add_special_tokens=True,
+    )
+
     # Build reader
     # ============
-    reader = WikiTextReader(100, max_instances=100)
-    instances = list(reader.read(config.WIKI_RAW_DIR / "wiki.train.raw"))
+    reader = WikiTextReader(
+        context=10,
+        tokenizer=wiki_tokenizer,
+        token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
+        max_instances=100,
+    )
+    instances = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
 
     # Read vocabulary from vocabulary directory
     # =========================================
@@ -44,7 +56,20 @@ if __name__ == "__main__":
 
     # Setup model and training
     # ========================
-    data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
+    # data_loader = SimpleDataLoader(
+    #     reader=readder,
+    #     data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
+    #     batch_size=4,
+    #     vocab=vocab,
+    #     shuffle=True,
+    # )
+    data_loader = MultiProcessDataLoader(
+        reader=reader,
+        data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
+        batch_size=4,
+        shuffle=True,
+    )
+    data_loader.index_with(vocab)
 
     model = LanguageModel(
         vocab=vocab,

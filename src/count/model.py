@@ -1,34 +1,30 @@
 # STL
 from typing import Dict
 
+import numpy
 # Utilities
 import torch
-import numpy
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
-
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
 from allennlp.data.data_loaders import SimpleDataLoader
-from allennlp.data.fields import TextField, LabelField
+from allennlp.data.fields import LabelField, TextField
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
-
+from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 # Models
 from allennlp.models import Model
-
+from allennlp.modules import Embedding, TextFieldEmbedder
+# Layers
+from allennlp.modules.attention import Attention
+from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.modules.transformer import TransformerLayer
+from allennlp.nn.activations import Activation
+from allennlp.nn.util import (get_text_field_mask,
+                              sequence_cross_entropy_with_logits)
 # Inference
 from allennlp.predictors.predictor import Predictor
-
 # Training
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
-
-# Layers
-from allennlp.modules.attention import Attention
-from allennlp.modules.transformer import TransformerLayer
-from allennlp.modules import Embedding, TextFieldEmbedder
-from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
-from allennlp.nn.activations import Activation
 
 # Local
 from data import WikiTextReader

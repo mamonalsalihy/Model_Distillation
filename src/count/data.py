@@ -18,13 +18,15 @@ from allennlp.data.tokenizers import Token, WhitespaceTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 
+import config
+
 # Local
 from tokenizer import WikiTextTokenizer
-import config
 
 logger = logging.getLogger(__name__)
 
 
+@DatasetReader.register("wikitext-reader")
 class WikiTextReader(DatasetReader):
     """
     Creates `Instances` suitable for use in predicting a single next token using a language
@@ -60,12 +62,16 @@ class WikiTextReader(DatasetReader):
         }
         self._context = context
 
-    def _read(self, file_path: str) -> Iterable[Instance]:
+    def _single_process_read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
-        with open(file_path, "r",encoding='utf8') as f:
+        with open(file_path, "r", encoding="utf8") as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
+
+    def _read(self, file_path: str) -> Iterable[Instance]:
+        shards = self._single_process_read(file_path)
+        yield from self.shard_iterable(shards)
 
     def generate_instances(self, text: str) -> Iterable[Instance]:
         """Generates instances of a certain context size given the available text
@@ -106,9 +112,13 @@ class WikiTextReader(DatasetReader):
             Instance containing a `tokens` field and a `target` field.
         """
 
-        input_field = TextField(tokens, self._token_indexers)
+        input_field = TextField(tokens)
         fields: Dict[str, Field] = {"tokens": input_field}
         return Instance(fields)
+
+    def apply_token_indexers(self, instance):
+        """Adds a token indexer to the instance. Automatically called by AllenNLP."""
+        instance["tokens"].token_indexers = self._token_indexers
 
 
 if __name__ == "__main__":
@@ -116,7 +126,11 @@ if __name__ == "__main__":
         tokenizer_path=config.TOKENIZER,
         add_special_tokens=True,
     )
-    reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
+    reader = WikiTextReader(
+        context=10,
+        tokenizer=wiki_tokenizer,
+        token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
+    )
     dataset = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
     for i in islice(dataset, 4):
         print(i)

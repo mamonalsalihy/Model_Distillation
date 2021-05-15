@@ -1,15 +1,14 @@
 # Utilities
+import numpy as np
 import torch
-import numpy
-from itertools import islice
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
-from allennlp.data.data_loaders import SimpleDataLoader
-from allennlp.data.fields import TextField, LabelField
+from allennlp.data.data_loaders import SimpleDataLoader, MultiProcessDataLoader
+from allennlp.data.fields import LabelField, TextField
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
+from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 
 # Modules
 from allennlp.modules import Embedding, TextFieldEmbedder
@@ -23,16 +22,29 @@ from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
 # Local
-from data import WikiTextReader
 import config
+from data import WikiTextReader
+from tokenizer import WikiTextTokenizer
 from model import LanguageModel
 
 if __name__ == "__main__":
+    # Build tokenizer
+    # ===============
+    wiki_tokenizer = WikiTextTokenizer(
+        tokenizer_path=str(config.TOKENIZER),
+        add_special_tokens=True,
+    )
+
     # Build reader
     # ============
-    reader = WikiTextReader(100)
-    instances = list(islice(reader.read(config.WIKI_RAW_DIR / "wiki.train.raw"), 10))
-    val_instances = list(islice(reader.read(config.WIKI_RAW_DIR / "wiki.valid.raw"), 10))
+    reader = WikiTextReader(
+        context=10,
+        tokenizer=wiki_tokenizer,
+        token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
+        manual_distributed_sharding=True,
+        manual_multiprocess_sharding=True,
+        max_instances=30_000,
+    )
 
     # Read vocabulary from vocabulary directory
     # =========================================
@@ -45,8 +57,24 @@ if __name__ == "__main__":
 
     # Setup model and training
     # ========================
-    data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
-    val_data_loader = SimpleDataLoader(val_instances, batch_size=4, vocab=vocab)
+    train_data_loader = MultiProcessDataLoader(
+        reader=reader,
+        data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
+        batch_size=64,
+        shuffle=True,
+        max_instances_in_memory=None,
+        num_workers=4,
+    )
+    train_data_loader.index_with(vocab)
+    val_data_loader = MultiProcessDataLoader(
+        reader=reader,
+        data_path=config.WIKI_RAW_DIR / "wiki.valid.raw",
+        batch_size=64,
+        shuffle=False,
+        max_instances_in_memory=None,
+        num_workers=4,
+    )
+    val_data_loader.index_with(vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -58,8 +86,8 @@ if __name__ == "__main__":
 
     trainer = GradientDescentTrainer(
         model=model.cuda(),
-        data_loader=data_loader,
-        validation_metric='-perplexity',
+        data_loader=train_data_loader,
+        validation_metric="-perplexity",
         validation_data_loader=val_data_loader,
         num_epochs=20,
         patience=10,
@@ -67,7 +95,7 @@ if __name__ == "__main__":
         cuda_device=config.DEVICE_1,
     )
 
-    print('parameters:', model.count_parameters())
+    print("parameters:", model.count_parameters())
 
     # Run training
     # ============

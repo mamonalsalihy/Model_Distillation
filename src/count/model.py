@@ -1,20 +1,22 @@
 # STL
 from typing import Dict
 
+import numpy
+
 # Utilities
 import torch
-import numpy
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
 from allennlp.data.data_loaders import SimpleDataLoader
-from allennlp.data.fields import TextField, LabelField
+from allennlp.data.fields import LabelField, TextField
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
+from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 
 # Models
 from allennlp.models import Model
+from allennlp.modules import Embedding, TextFieldEmbedder
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -61,7 +63,7 @@ class LanguageModel(Model):
             num_attention_heads=num_attention_heads,
             hidden_dropout=hidden_dropout,
             activation=self.activation,
-            add_cross_attention=cross_attention
+            add_cross_attention=cross_attention,
         )
 
         # linear layer that maps the last last transformer layer to logits for each word
@@ -76,10 +78,10 @@ class LanguageModel(Model):
     ) -> Dict[str, torch.Tensor]:
 
         # shape (batch_size, timesteps)
-        token_ids = tokens['tokens']['tokens']
+        token_ids = tokens["tokens"]["tokens"]
 
         # get source and targets from tokens
-        source = token_ids[:, 0:-1]
+        source = token_ids[:, :-1]
         target = token_ids[:, 1:]
 
         # do embedding stuff here
@@ -111,7 +113,7 @@ class LanguageModel(Model):
         # calculates the perplexity for the model
         self.metric(loss)
 
-        return {"logits": logits, "loss": loss, 'probs': probs}
+        return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]
@@ -139,7 +141,6 @@ class LanguageModel(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"perplexity": self.metric.get_metric(reset)}
-
 
     def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)

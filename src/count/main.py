@@ -31,7 +31,8 @@ if __name__ == "__main__":
     # Build reader
     # ============
     reader = WikiTextReader(100)
-    instances = list(islice(reader.read(config.WIKI_RAW_DIR / "wiki.train.raw"), 100))
+    instances = list(islice(reader.read(config.WIKI_RAW_DIR / "wiki.train.raw"), 10))
+    val_instances = list(islice(reader.read(config.WIKI_RAW_DIR / "wiki.valid.raw"), 10))
 
     # Read vocabulary from vocabulary directory
     # =========================================
@@ -45,6 +46,7 @@ if __name__ == "__main__":
     # Setup model and training
     # ========================
     data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
+    val_data_loader = SimpleDataLoader(val_instances, batch_size=4, vocab=vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -57,10 +59,15 @@ if __name__ == "__main__":
     trainer = GradientDescentTrainer(
         model=model.cuda(),
         data_loader=data_loader,
-        num_epochs=5,
+        validation_metric='-perplexity',
+        validation_data_loader=val_data_loader,
+        num_epochs=20,
+        patience=10,
         optimizer=torch.optim.Adam(model.parameters()),
         cuda_device=config.DEVICE_1,
     )
+
+    print('parameters:', model.count_parameters())
 
     # Run training
     # ============

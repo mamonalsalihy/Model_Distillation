@@ -25,13 +25,14 @@ from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
 # Layers
 from allennlp.modules.attention import Attention
-from allennlp.modules.transformer import TransformerLayer
+from allennlp.modules.transformer import TransformerLayer, TransformerStack
 from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.nn.activations import Activation
 
 # Local
 from data import WikiTextReader
+import config
 
 
 @Model.register("language-model")
@@ -53,14 +54,14 @@ class LanguageModel(Model):
         self.embedder = embedder
         self.activation = Activation.by_name(activation)()
         # question: what is intermediate size?
-        self.transformer = TransformerLayer(
+        self.transformer = TransformerStack(
+            num_hidden_layers=4,
             hidden_size=hidden_size,
             intermediate_size=intermediate_size,
             num_attention_heads=num_attention_heads,
-            attention_dropout=att_dropout,
             hidden_dropout=hidden_dropout,
             activation=self.activation,
-            add_cross_attention=cross_attention,
+            add_cross_attention=cross_attention
         )
 
         # linear layer that maps the last last transformer layer to logits for each word
@@ -103,8 +104,9 @@ class LanguageModel(Model):
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
 
-        # need to pass pad idx so we can ignore this, unsure how to achieve this in AllenNLP
-        loss = torch.nn.functional.cross_entropy(preds, target)
+        PAD_IDX = self.vocab.get_token_index(config.PAD)
+
+        loss = torch.nn.functional.cross_entropy(preds, target, ignore_index=PAD_IDX)
 
         # calculates the perplexity for the model
         self.metric(loss)
@@ -137,3 +139,7 @@ class LanguageModel(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"perplexity": self.metric.get_metric(reset)}
+
+
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)

@@ -27,7 +27,8 @@ CLS = "[CLS]"
 SEP = "[SEP]"
 
 # Constants
-DIF_TOKENIZERS_RATIO = 101_425_671 / 101_425_671
+# Currently the denominator is arbitrary. It should be the total number of tokens from the new tokenizer.
+DIF_TOKENIZERS_RATIO = 101_425_671 / 111_568_238
 
 
 # Hyper-parameters

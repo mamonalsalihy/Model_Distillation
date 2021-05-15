@@ -1,6 +1,7 @@
 from tokenizers import Tokenizer
 from tokenizers.models import BPE, Unigram, WordPiece, WordLevel
 from tokenizers import pre_tokenizers
+from tokenizers import processors
 from tokenizers import normalizers
 from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer, WordLevelTrainer
 
@@ -18,6 +19,7 @@ def train(
     vocab_size: int = 32_000,
     pre: list = None,
     norms: list = None,
+    post: processors.PostProcessor = None,
 ):
 
     special_tokens = [config.PAD, config.UNK, config.CLS, config.SEP]
@@ -40,18 +42,20 @@ def train(
     else:
         raise NotImplementedError(f"Method {algorithm} has not been added yet")
 
-    # Collect the pretokenizers
+    # Add all the processors
     # =========================
     if pre_tokenizers is None:
-        pre = pre_tokenizers.Whitespace()
+        tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
     else:
-        pre = pre_tokenizers.Sequence(pre)
+        tokenizer.pre_tokenizer = pre_tokenizers.Sequence(pre)
 
     if norms is None:
         tokenizer.normalizer = normalizers.NFKC()
     else:
         tokenizer.normalizer = normalizers.Sequence(norms)
-    tokenizer.pre_tokenizer = pre
+
+    if post is not None:
+        tokenizer.post_processor = post
 
     # Train and save tokenizer
     # ========================
@@ -70,6 +74,7 @@ if __name__ == "__main__":
         pre_tokenizers.Digits(individual_digits=False),
     ]
     NORMS = [normalizers.BertNormalizer(lowercase=False)]
+    POST_PROCESSOR = None
 
     train(
         algorithm=ALGORITHM,
@@ -78,4 +83,5 @@ if __name__ == "__main__":
         vocab_size=VOCAB_SIZE,
         pre=PRE_TOKENIZERS,
         norms=NORMS,
+        post=POST_PROCESSOR,
     )

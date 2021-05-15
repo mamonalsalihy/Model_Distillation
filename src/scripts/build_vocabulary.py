@@ -2,7 +2,9 @@
 from allennlp.data import Vocabulary
 
 # Local
-import sys; sys.path.append('../')
+import sys
+
+sys.path.append("../")
 from count import tokenizer, config
 
 
@@ -18,8 +20,9 @@ if __name__ == "__main__":
     tokens, indices = zip(*sorted(mapping.items(), key=lambda x: x[1]))
 
     # Build the vocabulary from the tokenizer tokens
-    vocab = Vocabulary(tokens_to_add={"tokens": tokens}, padding_token=config.PAD,
-            oov_token=config.UNK)
+    vocab = Vocabulary(
+        tokens_to_add={"tokens": tokens}, padding_token=config.PAD, oov_token=config.UNK
+    )
 
     # Make sure the indices match up
     assert all(

@@ -1,7 +1,6 @@
 # Utilities
 import torch
 import numpy
-from itertools import islice
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 from itertools import islice
 
@@ -31,8 +30,8 @@ from model import LanguageModel
 if __name__ == "__main__":
     # Build reader
     # ============
-    reader = WikiTextReader(100)
-    instances = list(islice(reader.read(config.WIKI_RAW_DIR / "wiki.train.raw"), 100))
+    reader = WikiTextReader(100, max_instances=100)
+    instances = list(reader.read(config.WIKI_RAW_DIR / "wiki.train.raw"))
 
     # Read vocabulary from vocabulary directory
     # =========================================
@@ -60,6 +59,7 @@ if __name__ == "__main__":
         data_loader=data_loader,
         num_epochs=5,
         optimizer=torch.optim.Adam(model.parameters()),
+        cuda_device=config.DEVICE_1,
     )
 
     # Run training

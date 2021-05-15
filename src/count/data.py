@@ -62,7 +62,7 @@ class WikiTextReader(DatasetReader):
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
-        with open(file_path, "r",encoding='utf8') as f:
+        with open(file_path, "r", encoding="utf8") as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
@@ -106,9 +106,13 @@ class WikiTextReader(DatasetReader):
             Instance containing a `tokens` field and a `target` field.
         """
 
-        input_field = TextField(tokens, self._token_indexers)
+        input_field = TextField(tokens)
         fields: Dict[str, Field] = {"tokens": input_field}
         return Instance(fields)
+
+    def apply_token_indexers(self, instance):
+        """Adds a token indexer to the instance. Automatically called by AllenNLP."""
+        instance["tokens"].token_indexers = self._token_indexers
 
 
 if __name__ == "__main__":
@@ -116,7 +120,11 @@ if __name__ == "__main__":
         tokenizer_path=config.TOKENIZER,
         add_special_tokens=True,
     )
-    reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
+    reader = WikiTextReader(
+        context=10,
+        tokenizer=wiki_tokenizer,
+        token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
+    )
     dataset = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
     for i in islice(dataset, 4):
         print(i)

@@ -75,10 +75,10 @@ class LanguageModel(Model):
     ) -> Dict[str, torch.Tensor]:
 
         # shape (batch_size, timesteps)
-        token_ids = tokens['tokens']['tokens']
+        token_ids = tokens["tokens"]["tokens"]
 
         # get source and targets from tokens
-        source = token_ids[:, 0:-1]
+        source = token_ids[:, :-1]
         target = token_ids[:, 1:]
 
         # do embedding stuff here
@@ -109,7 +109,7 @@ class LanguageModel(Model):
         # calculates the perplexity for the model
         self.metric(loss)
 
-        return {"logits": logits, "loss": loss, 'probs': probs}
+        return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]

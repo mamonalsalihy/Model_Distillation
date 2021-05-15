@@ -62,12 +62,16 @@ class WikiTextReader(DatasetReader):
         }
         self._context = context
 
-    def _read(self, file_path: str) -> Iterable[Instance]:
+    def _single_process_read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
         with open(file_path, "r", encoding="utf8") as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
+
+    def _read(self, file_path: str) -> Iterable[Instance]:
+        shards = self._single_process_read(file_path)
+        yield from self.shard_iterable(shards)
 
     def generate_instances(self, text: str) -> Iterable[Instance]:
         """Generates instances of a certain context size given the available text

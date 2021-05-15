@@ -38,10 +38,12 @@ if __name__ == "__main__":
     # Build reader
     # ============
     reader = WikiTextReader(
-        context=50,
+        context=10,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
-        max_instances=100,
+        manual_distributed_sharding=True,
+        manual_multiprocess_sharding=True,
+        max_instances=30_000,
     )
 
     # Read vocabulary from vocabulary directory
@@ -55,25 +57,22 @@ if __name__ == "__main__":
 
     # Setup model and training
     # ========================
-    # data_loader = SimpleDataLoader(
-    #     reader=readder,
-    #     data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
-    #     batch_size=4,
-    #     vocab=vocab,
-    #     shuffle=True,
-    # )
     train_data_loader = MultiProcessDataLoader(
         reader=reader,
         data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
-        batch_size=16,
+        batch_size=64,
         shuffle=True,
+        max_instances_in_memory=None,
+        num_workers=4,
     )
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
         reader=reader,
         data_path=config.WIKI_RAW_DIR / "wiki.valid.raw",
-        batch_size=16,
+        batch_size=64,
         shuffle=False,
+        max_instances_in_memory=None,
+        num_workers=4,
     )
     val_data_loader.index_with(vocab)
 

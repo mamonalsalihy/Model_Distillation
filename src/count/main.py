@@ -41,9 +41,8 @@ if __name__ == "__main__":
         context=10,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
-        max_instances=100,
+        max_instances=10000,
     )
-    instances = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
 
     # Read vocabulary from vocabulary directory
     # =========================================
@@ -63,13 +62,20 @@ if __name__ == "__main__":
     #     vocab=vocab,
     #     shuffle=True,
     # )
-    data_loader = MultiProcessDataLoader(
+    train_data_loader = MultiProcessDataLoader(
         reader=reader,
         data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
         batch_size=4,
         shuffle=True,
     )
-    data_loader.index_with(vocab)
+    train_data_loader.index_with(vocab)
+    valid_data_loader = MultiProcessDataLoader(
+        reader=reader,
+        data_path=config.WIKI_RAW_DIR / "wiki.valid.raw",
+        batch_size=4,
+        shuffle=True,
+    )
+    valid_data_loader.index_with(vocab)
 
     model = LanguageModel(
         vocab=vocab,
@@ -82,10 +88,15 @@ if __name__ == "__main__":
     trainer = GradientDescentTrainer(
         model=model.cuda(),
         data_loader=data_loader,
-        num_epochs=5,
+        validation_metric="-perplexity",
+        validation_data_loader=val_data_loader,
+        num_epochs=20,
+        patience=10,
         optimizer=torch.optim.Adam(model.parameters()),
         cuda_device=config.DEVICE_1,
     )
+
+    print("parameters:", model.count_parameters())
 
     # Run training
     # ============

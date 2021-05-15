@@ -28,6 +28,7 @@ SEP = "[SEP]"
 
 # Constants
 # Currently the denominator is arbitrary. It should be the total number of tokens from the new tokenizer.
+# Support for subset training has yet to be added. 
 DIF_TOKENIZERS_RATIO = 101_425_671 / 111_568_238
 
 

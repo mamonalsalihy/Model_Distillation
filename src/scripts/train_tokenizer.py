@@ -1,5 +1,3 @@
-import os
-
 from tokenizers import Tokenizer
 from tokenizers.models import BPE, Unigram, WordPiece, WordLevel
 from tokenizers import pre_tokenizers
@@ -7,15 +5,16 @@ from tokenizers import normalizers
 from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer, WordLevelTrainer
 
 # Local
-import sys;
+import sys
 
-sys.path.append('../')
+sys.path.append("../")
 from count import tokenizer, config
+import os
 
 
 def train(
         algorithm: str = "bpe",
-        files: list = [str(config.WIKI_RAW_DIR / "wiki.train.raw")],
+        files: list = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")],
         output: str = config.TOKENIZER,
         vocab_size: int = 32_000,
         pre: list = None,
@@ -56,17 +55,28 @@ def train(
 
     # Train and save tokenizer
     # ========================
+    print("Training tokenizer ... ")
     tokenizer.train(files, trainer)
     tokenizer.save(output)
+    print("Finished training tokenizer ... ")
 
 
 if __name__ == "__main__":
     ALGORITHM = "unigram"
     print(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
-    FILES = [os.path.join((config.WIKI_RAW_DIR / "wiki.train.raw"))]
+    FILES = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")]
     OUTPUT = config.TOKENIZER
     VOCAB_SIZE = 30_000
     PRE_TOKENIZERS = [pre_tokenizers.Whitespace(), pre_tokenizers.ByteLevel()]
+    FILES = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")]
+    OUTPUT = config.TOKENIZER
+    VOCAB_SIZE = 32_000
+    PRE_TOKENIZERS = [
+        pre_tokenizers.Whitespace(),
+        pre_tokenizers.BertPreTokenizer(),
+        pre_tokenizers.Digits(individual_digits=False),
+    ]
+    NORMS = [normalizers.BertNormalizer(lowercase=False)]
 
     train(
         algorithm=ALGORITHM,
@@ -74,4 +84,5 @@ if __name__ == "__main__":
         output=OUTPUT,
         vocab_size=VOCAB_SIZE,
         pre=PRE_TOKENIZERS,
+        norms=NORMS,
     )

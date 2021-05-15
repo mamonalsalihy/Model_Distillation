@@ -26,6 +26,7 @@ import config
 logger = logging.getLogger(__name__)
 
 
+@DatasetReader.register("wikitext-reader")
 class WikiTextReader(DatasetReader):
     """
     Creates `Instances` suitable for use in predicting a single next token using a language
@@ -61,7 +62,7 @@ class WikiTextReader(DatasetReader):
         }
         self._context = context
 
-    def _read(self, file_path: str) -> Iterable[Instance]:
+    def _single_process_read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
         with open(file_path, "r", encoding='utf8') as f:
             for line in f:
@@ -117,7 +118,11 @@ if __name__ == "__main__":
         tokenizer_path=config.TOKENIZER,
         add_special_tokens=True,
     )
-    reader = WikiTextReader(context=10, tokenizer=wiki_tokenizer)
+    reader = WikiTextReader(
+        context=10,
+        tokenizer=wiki_tokenizer,
+        token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
+    )
     dataset = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
     for i in islice(dataset, 4):
         print(i)

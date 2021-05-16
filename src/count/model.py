@@ -70,6 +70,9 @@ class LanguageModel(Model):
         self.vocab_size = vocab.get_vocab_size()
         self.linear = torch.nn.Linear(hidden_size, self.vocab_size)
 
+        self.normalizer = config.BATCH_SIZE * config.CONTEXT_WINDOW
+        self.dif_tokenizers_ratio = config.DIF_TOKENIZERS_RATIO
+
         self.metric = Perplexity()
 
     def forward(
@@ -108,10 +111,14 @@ class LanguageModel(Model):
 
         PAD_IDX = self.vocab.get_token_index(config.PAD)
 
-        loss = torch.nn.functional.cross_entropy(preds, target, ignore_index=PAD_IDX)
+        temp = torch.nn.functional.cross_entropy(preds, target, ignore_index=PAD_IDX, reduction='sum')
+        loss = temp / self.normalizer
 
-        # calculates the perplexity for the model
-        self.metric(loss)
+
+        new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
+
+        # calculates the perplexity for the model w.r.t new normalizer
+        self.metric(new_normalized)
 
         return {"logits": logits, "loss": loss, "probs": probs}
 

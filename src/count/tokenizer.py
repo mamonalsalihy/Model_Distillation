@@ -8,6 +8,10 @@ from overrides import overrides
 
 # Huggingface tokenizer
 from tokenizers import Tokenizer as HFTokenizer
+from tokenizers.processors import BertProcessing
+
+# Local
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,7 @@ class WikiTextTokenizer(Tokenizer):
 
     add_special_tokens : `bool`, optional, (default=`True`)
         If set to `True`, the sequences will be encoded with the special tokens relative to their
-        model.
+        model. In our case, that is the CLS and SEP tokens.
 
     """  # noqa: E501
 
@@ -34,8 +38,15 @@ class WikiTextTokenizer(Tokenizer):
         add_special_tokens: bool = True,
     ) -> None:
         self.tokenizer = HFTokenizer.from_file(tokenizer_path)
-
         self._add_special_tokens = add_special_tokens
+
+        # If we're adding special tokens, add the BERT post-processor
+        if self._add_special_tokens:
+            sep_idx = self.tokenizer.token_to_id(config.SEP)
+            cls_idx = self.tokenizer.token_to_id(config.CLS)
+            self.tokenizer.post_processor = BertProcessing(
+                sep=(config.SEP, sep_idx), cls=(config.CLS, cls_idx)
+            )
 
         self._tokenizer_lowercases = "a" in self.tokenizer.encode("A").tokens
 

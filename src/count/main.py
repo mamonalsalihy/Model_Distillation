@@ -2,6 +2,7 @@
 import numpy as np
 import torch
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+import os
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -31,14 +32,14 @@ if __name__ == "__main__":
     # Build tokenizer
     # ===============
     wiki_tokenizer = WikiTextTokenizer(
-        tokenizer_path=str(config.TOKENIZER),
+        tokenizer_path=config.TOKENIZER,
         add_special_tokens=True,
     )
 
     # Build reader
     # ============
     reader = WikiTextReader(
-        context=10,
+        context=config.CONTEXT_WINDOW,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         manual_distributed_sharding=True,
@@ -59,8 +60,8 @@ if __name__ == "__main__":
     # ========================
     train_data_loader = MultiProcessDataLoader(
         reader=reader,
-        data_path=config.WIKI_RAW_DIR / "wiki.train.raw",
-        batch_size=64,
+        data_path=os.path.join(config.WIKI_RAW_DIR , "wiki.train.raw"),
+        batch_size=config.BATCH_SIZE,
         shuffle=True,
         max_instances_in_memory=None,
         num_workers=4,
@@ -68,8 +69,8 @@ if __name__ == "__main__":
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
         reader=reader,
-        data_path=config.WIKI_RAW_DIR / "wiki.valid.raw",
-        batch_size=64,
+        data_path=os.path.join(config.WIKI_RAW_DIR , "wiki.valid.raw"),
+        batch_size=config.BATCH_SIZE,
         shuffle=False,
         max_instances_in_memory=None,
         num_workers=4,
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     )
 
     trainer = GradientDescentTrainer(
-        model=model.cuda(),
+        model=model.to(config.DEVICE_1),
         data_loader=train_data_loader,
         validation_metric="-perplexity",
         validation_data_loader=val_data_loader,

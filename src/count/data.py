@@ -1,4 +1,5 @@
 import logging
+import os
 from itertools import islice
 from typing import Dict, Iterable
 
@@ -18,10 +19,9 @@ from allennlp.data.tokenizers import Token, WhitespaceTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 
-import config
-
 # Local
 from tokenizer import WikiTextTokenizer
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +47,11 @@ class WikiTextReader(DatasetReader):
     """
 
     def __init__(
-        self,
-        context: int,
-        tokenizer: Tokenizer = None,
-        token_indexers: Dict[str, TokenIndexer] = None,
-        **kwargs,
+            self,
+            context: int,
+            tokenizer: Tokenizer = None,
+            token_indexers: Dict[str, TokenIndexer] = None,
+            **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self._sentence_splitter = SpacySentenceSplitter(rule_based=True)
@@ -93,7 +93,7 @@ class WikiTextReader(DatasetReader):
             tokens = self._tokenizer.tokenize(sent)
             for start in range(len(tokens) - self._context):
                 width = start + self._context
-                yield self.text_to_instance(tokens[start : width + 1])
+                yield self.text_to_instance(tokens[start: width + 1])
 
     def text_to_instance(
         self,
@@ -131,6 +131,6 @@ if __name__ == "__main__":
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
     )
-    dataset = reader.read(config.WIKI_RAW_DIR / "wiki.train.raw")
+    dataset = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
     for i in islice(dataset, 4):
         print(i)

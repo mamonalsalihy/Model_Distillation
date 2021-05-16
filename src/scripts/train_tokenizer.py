@@ -10,18 +10,18 @@ import sys
 
 sys.path.append("../")
 from count import tokenizer, config
+import os
 
 
 def train(
     algorithm: str = "bpe",
-    files: list = [str(config.WIKI_RAW_DIR / "wiki.train.raw")],
+    files: list = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")],
     output: str = config.TOKENIZER,
     vocab_size: int = 32_000,
     pre: list = None,
     norms: list = None,
     post: processors.PostProcessor = None,
 ):
-
     special_tokens = [config.PAD, config.UNK, config.CLS, config.SEP]
     # Initialize the classes
     # ======================
@@ -59,14 +59,21 @@ def train(
 
     # Train and save tokenizer
     # ========================
+    print("Training tokenizer ... ")
     tokenizer.train(files, trainer)
     tokenizer.save(output)
+    print("Finished training tokenizer ... ")
 
 
 if __name__ == "__main__":
     ALGORITHM = "unigram"
-    FILES = [str(config.WIKI_RAW_DIR / "wiki.train.raw")]
-    OUTPUT = str(config.TOKENIZER)
+    print(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
+    FILES = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")]
+    OUTPUT = config.TOKENIZER
+    VOCAB_SIZE = 30_000
+    PRE_TOKENIZERS = [pre_tokenizers.Whitespace(), pre_tokenizers.ByteLevel()]
+    FILES = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")]
+    OUTPUT = config.TOKENIZER
     VOCAB_SIZE = 32_000
     PRE_TOKENIZERS = [
         pre_tokenizers.Whitespace(),

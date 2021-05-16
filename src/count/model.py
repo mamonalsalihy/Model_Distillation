@@ -76,9 +76,10 @@ class LanguageModel(Model):
         self.metric = Perplexity()
 
     def forward(
-            self,
-            tokens: TextFieldTensors,
+        self,
+        tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
+
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 

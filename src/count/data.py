@@ -64,10 +64,14 @@ class WikiTextReader(DatasetReader):
 
     def _single_process_read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
-        with open(file_path, "r", encoding='utf8') as f:
+        with open(file_path, "r", encoding="utf8") as f:
             for line in f:
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
+
+    def _read(self, file_path: str) -> Iterable[Instance]:
+        shards = self._single_process_read(file_path)
+        yield from self.shard_iterable(shards)
 
     def generate_instances(self, text: str) -> Iterable[Instance]:
         """Generates instances of a certain context size given the available text
@@ -92,8 +96,8 @@ class WikiTextReader(DatasetReader):
                 yield self.text_to_instance(tokens[start: width + 1])
 
     def text_to_instance(
-            self,
-            tokens: Iterable[Token],
+        self,
+        tokens: Iterable[Token],
     ) -> Instance:
         """Converts a list of `Token`s into an `Instance`
 
@@ -108,9 +112,13 @@ class WikiTextReader(DatasetReader):
             Instance containing a `tokens` field and a `target` field.
         """
 
-        input_field = TextField(tokens, self._token_indexers)
+        input_field = TextField(tokens)
         fields: Dict[str, Field] = {"tokens": input_field}
         return Instance(fields)
+
+    def apply_token_indexers(self, instance):
+        """Adds a token indexer to the instance. Automatically called by AllenNLP."""
+        instance["tokens"].token_indexers = self._token_indexers
 
 
 if __name__ == "__main__":

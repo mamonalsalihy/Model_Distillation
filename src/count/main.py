@@ -40,20 +40,20 @@ if __name__ == "__main__":
 
     # Create embedder for the model
     # =============================
-    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=20)
+    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=config.EMBEDDING_DIMENSION)
     embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
 
     # Setup model and training
     # ========================
-    data_loader = SimpleDataLoader(instances, batch_size=4, vocab=vocab)
-    val_data_loader = SimpleDataLoader(val_instances, batch_size=4, vocab=vocab)
+    data_loader = SimpleDataLoader(instances, batch_size=config.BATCH_SIZE, vocab=vocab)
+    val_data_loader = SimpleDataLoader(val_instances, batch_size=config.BATCH_SIZE, vocab=vocab)
 
     model = LanguageModel(
         vocab=vocab,
         embedder=embedder,
-        hidden_size=20,
-        intermediate_size=50,
-        num_attention_heads=1,
+        hidden_size=config.EMBEDDING_DIMENSION,
+        intermediate_size=config.HIDDEN_DIMENSION,
+        num_attention_heads=config.NUM_ATTENTION_HEADS,
     )
 
     trainer = GradientDescentTrainer(
@@ -61,12 +61,13 @@ if __name__ == "__main__":
         data_loader=data_loader,
         validation_metric='-perplexity',
         validation_data_loader=val_data_loader,
-        num_epochs=20,
-        patience=10,
-        optimizer=torch.optim.Adam(model.parameters()),
+        num_epochs=config.NUM_EPOCHS,
+        patience=config.PATIENCE,
+        optimizer=torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE),
         cuda_device=config.DEVICE_1,
     )
 
+    # note, count_parmeters now returns a string for easier readability
     print('parameters:', model.count_parameters())
 
     # Run training

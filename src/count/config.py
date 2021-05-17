@@ -18,6 +18,18 @@ WIKI_RAW_DIR = ROOT / "data" / "wikitext-103-raw"
 VOCAB_SIZE = 30_000
 DEVICE_1 = 0  # device number
 
+# Transformer Parameters
+TRANSFORMER_LAYERS = 4
+EMBEDDING_DIMENSION = 64
+HIDDEN_DIMENSION = 128
+NUM_ATTENTION_HEADS = 4
+
+# Training Parameters
+NUM_EPOCHS = 10
+LEARNING_RATE = 1e-5
+BATCH_SIZE = 4
+PATIENCE = 10
+
 # Special tokens
 PAD = "[PAD]"
 UNK = "[UNK]"

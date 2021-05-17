@@ -22,19 +22,19 @@ DEVICE_1 = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Transformer Parameters
 TRANSFORMER_LAYERS = 1
-EMBEDDING_DIMENSION = 4
-HIDDEN_DIMENSION = 8
+EMBEDDING_DIMENSION = 8
+HIDDEN_DIMENSION = 16
 NUM_ATTENTION_HEADS = 1
 
 # Hyper-parameters
-CONTEXT_WINDOW = 50
+CONTEXT_WINDOW = 10
 
 # Training Parameters
 NUM_EPOCHS = 1
 LEARNING_RATE = 1e-5
-BATCH_SIZE = 10
+BATCH_SIZE = 4
 PATIENCE = 10
-MAX_INSTANCES = 1
+MAX_INSTANCES = 100
 
 # Special tokens
 PAD = "[PAD]"

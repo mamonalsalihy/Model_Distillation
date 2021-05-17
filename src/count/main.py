@@ -46,7 +46,7 @@ if __name__ == "__main__":
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,
-        max_instances=30_000,
+        max_instances=config.MAX_INSTANCES,
     )
 
     # Read vocabulary from vocabulary directory
@@ -67,6 +67,7 @@ if __name__ == "__main__":
         shuffle=True,
         max_instances_in_memory=None,
         num_workers=4,
+        start_method='spawn'
     )
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
@@ -76,12 +77,14 @@ if __name__ == "__main__":
         shuffle=False,
         max_instances_in_memory=None,
         num_workers=4,
+        start_method='spawn'
     )
     val_data_loader.index_with(vocab)
 
     model = LanguageModel(
         vocab=vocab,
         embedder=embedder,
+        num_hidden_layers=config.TRANSFORMER_LAYERS,
         hidden_size=config.EMBEDDING_DIMENSION,
         intermediate_size=config.HIDDEN_DIMENSION,
         num_attention_heads=config.NUM_ATTENTION_HEADS,
@@ -104,3 +107,5 @@ if __name__ == "__main__":
     # Run training
     # ============
     trainer.train()
+
+    # need some mechanism to save the model once its been trained

@@ -40,16 +40,16 @@ import config
 @Model.register("language-model")
 class LanguageModel(Model):
     def __init__(
-        self,
-        vocab: Vocabulary,
-        embedder: TextFieldEmbedder,
-        hidden_size: int,
-        intermediate_size: int,
-        num_attention_heads: int,
-        att_dropout: float = 0.2,
-        hidden_dropout: float = 0.2,
-        activation: str = "relu",
-        cross_attention: bool = False,
+            self,
+            vocab: Vocabulary,
+            embedder: TextFieldEmbedder,
+            hidden_size: int,
+            intermediate_size: int,
+            num_attention_heads: int,
+            att_dropout: float = 0.2,
+            hidden_dropout: float = 0.2,
+            activation: str = "relu",
+            cross_attention: bool = False,
     ) -> None:
         super().__init__(vocab)
 
@@ -64,6 +64,7 @@ class LanguageModel(Model):
             hidden_dropout=hidden_dropout,
             activation=self.activation,
             add_cross_attention=cross_attention,
+            att_dropout=att_dropout,
         )
 
         # linear layer that maps the last last transformer layer to logits for each word
@@ -76,10 +77,9 @@ class LanguageModel(Model):
         self.metric = Perplexity()
 
     def forward(
-        self,
-        tokens: TextFieldTensors,
+            self,
+            tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
-
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 
@@ -126,7 +126,7 @@ class LanguageModel(Model):
         return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
-        self, output_dict: Dict[str, torch.Tensor]
+            self, output_dict: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Takes logits from `forward` and computes the corresponding label
 
@@ -152,5 +152,10 @@ class LanguageModel(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"perplexity": self.metric.get_metric(reset)}
 
+    # change parameters to be a more readable format
     def count_parameters(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        total = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        millions = total // 1_000_000
+        thousands = (total - millions * 1_000_000) // 1_000
+        string = str(millions) + '.' + str(thousands) + 'M'
+        return string

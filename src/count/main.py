@@ -1,6 +1,8 @@
 # Utilities
 import numpy as np
 import torch
+import numpy
+from itertools import islice
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 import os
 
@@ -53,7 +55,7 @@ if __name__ == "__main__":
 
     # Create embedder for the model
     # =============================
-    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=20)
+    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=config.EMBEDDING_DIMENSION)
     embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
 
     # Setup model and training
@@ -80,9 +82,9 @@ if __name__ == "__main__":
     model = LanguageModel(
         vocab=vocab,
         embedder=embedder,
-        hidden_size=20,
-        intermediate_size=50,
-        num_attention_heads=1,
+        hidden_size=config.EMBEDDING_DIMENSION,
+        intermediate_size=config.HIDDEN_DIMENSION,
+        num_attention_heads=config.NUM_ATTENTION_HEADS,
     )
 
     trainer = GradientDescentTrainer(
@@ -90,13 +92,14 @@ if __name__ == "__main__":
         data_loader=train_data_loader,
         validation_metric="-perplexity",
         validation_data_loader=val_data_loader,
-        num_epochs=20,
-        patience=10,
-        optimizer=torch.optim.Adam(model.parameters()),
+        num_epochs=config.NUM_EPOCHS,
+        patience=config.PATIENCE,
+        optimizer=torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE),
         cuda_device=config.DEVICE_1,
     )
 
-    print("parameters:", model.count_parameters())
+    # note, count_parmeters now returns a string for easier readability
+    print('parameters:', model.count_parameters())
 
     # Run training
     # ============

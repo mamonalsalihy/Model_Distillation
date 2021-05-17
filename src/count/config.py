@@ -21,16 +21,20 @@ VOCAB_SIZE = 30_000
 DEVICE_1 = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Transformer Parameters
-TRANSFORMER_LAYERS = 4
-EMBEDDING_DIMENSION = 64
-HIDDEN_DIMENSION = 128
-NUM_ATTENTION_HEADS = 4
+TRANSFORMER_LAYERS = 1
+EMBEDDING_DIMENSION = 4
+HIDDEN_DIMENSION = 8
+NUM_ATTENTION_HEADS = 1
+
+# Hyper-parameters
+CONTEXT_WINDOW = 50
 
 # Training Parameters
-NUM_EPOCHS = 10
+NUM_EPOCHS = 1
 LEARNING_RATE = 1e-5
-BATCH_SIZE = 4
+BATCH_SIZE = 10
 PATIENCE = 10
+MAX_INSTANCES = 1
 
 # Special tokens
 PAD = "[PAD]"
@@ -42,8 +46,3 @@ SEP = "[SEP]"
 # Currently the denominator is arbitrary. It should be the total number of tokens from the new tokenizer.
 # Support for subset training has yet to be added. 
 DIF_TOKENIZERS_RATIO = 101_425_671 / 111_568_238
-
-
-# Hyper-parameters
-CONTEXT_WINDOW = 100
-BATCH_SIZE = 4

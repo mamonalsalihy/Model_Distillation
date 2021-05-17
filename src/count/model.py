@@ -43,6 +43,7 @@ class LanguageModel(Model):
             self,
             vocab: Vocabulary,
             embedder: TextFieldEmbedder,
+            num_hidden_layers: int,
             hidden_size: int,
             intermediate_size: int,
             num_attention_heads: int,
@@ -56,7 +57,7 @@ class LanguageModel(Model):
         self.activation = Activation.by_name(activation)()
         # question: what is intermediate size?
         self.transformer = TransformerStack(
-            num_hidden_layers=4,
+            num_hidden_layers=num_hidden_layers,
             hidden_size=hidden_size,
             intermediate_size=intermediate_size,
             num_attention_heads=num_attention_heads,
@@ -67,6 +68,7 @@ class LanguageModel(Model):
 
         # linear layer that maps the last last transformer layer to logits for each word
         self.vocab_size = vocab.get_vocab_size()
+        self.PAD_IDX = self.vocab.get_token_index(config.PAD)
         self.linear = torch.nn.Linear(hidden_size, self.vocab_size)
 
         self.normalizer = config.BATCH_SIZE * config.CONTEXT_WINDOW
@@ -92,7 +94,10 @@ class LanguageModel(Model):
         # get the first part of the window
         source_embeddings = embeddings[:, 0:-1, :]
         # do processing stuff here
-        mask = get_text_field_mask(tokens)[:, 0:-1]
+        mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, 0:-1]
+        # open issue: how are we going to resolve this mask
+        # it is currently always true
+        # is the behavior we want?
 
         # NOTE, need to confirm that this is getting the right output of the transformer
         # calculate logits of the next context
@@ -110,11 +115,8 @@ class LanguageModel(Model):
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
 
-        PAD_IDX = self.vocab.get_token_index(config.PAD)
-
-        temp = torch.nn.functional.cross_entropy(preds, target, ignore_index=PAD_IDX, reduction='sum')
+        temp = torch.nn.functional.cross_entropy(preds, target, ignore_index=self.PAD_IDX, reduction='sum')
         loss = temp / self.normalizer
-
 
         new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
 

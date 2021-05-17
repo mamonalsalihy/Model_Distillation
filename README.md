@@ -23,6 +23,7 @@ git clone https://github.com/mamonalsalihy/Model-Distillation
 ```bash
 # with pipenv
 pipenv --python 3.9  # or other version
+pipenv shell
 
 # with virtualenv
 python -m venv <name-of-venv>

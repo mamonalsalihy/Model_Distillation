@@ -55,29 +55,31 @@ if __name__ == "__main__":
 
     # Create embedder for the model
     # =============================
-    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=config.EMBEDDING_DIMENSION)
+    embedding = Embedding(
+        num_embeddings=vocab.get_vocab_size(), embedding_dim=config.EMBEDDING_DIMENSION
+    )
     embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
 
     # Setup model and training
     # ========================
     train_data_loader = MultiProcessDataLoader(
         reader=reader,
-        data_path=os.path.join(config.WIKI_RAW_DIR , "wiki.train.raw"),
+        data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"),
         batch_size=config.BATCH_SIZE,
         shuffle=True,
         max_instances_in_memory=None,
         num_workers=4,
-        start_method='spawn'
+        start_method="spawn",
     )
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
         reader=reader,
-        data_path=os.path.join(config.WIKI_RAW_DIR , "wiki.valid.raw"),
+        data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.valid.raw"),
         batch_size=config.BATCH_SIZE,
         shuffle=False,
         max_instances_in_memory=None,
         num_workers=4,
-        start_method='spawn'
+        start_method="spawn",
     )
     val_data_loader.index_with(vocab)
 
@@ -102,7 +104,7 @@ if __name__ == "__main__":
     )
 
     # note, count_parmeters now returns a string for easier readability
-    print('parameters:', model.count_parameters())
+    print("parameters:", model.count_parameters())
 
     # Run training
     # ============

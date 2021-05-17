@@ -46,7 +46,6 @@ class LanguageModel(Model):
             hidden_size: int,
             intermediate_size: int,
             num_attention_heads: int,
-            att_dropout: float = 0.2,
             hidden_dropout: float = 0.2,
             activation: str = "relu",
             cross_attention: bool = False,
@@ -64,7 +63,6 @@ class LanguageModel(Model):
             hidden_dropout=hidden_dropout,
             activation=self.activation,
             add_cross_attention=cross_attention,
-            att_dropout=att_dropout,
         )
 
         # linear layer that maps the last last transformer layer to logits for each word

@@ -9,7 +9,7 @@ from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer, Wo
 import sys
 
 sys.path.append("../")
-from count import tokenizer, config
+from count import config
 import os
 
 

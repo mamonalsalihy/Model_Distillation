@@ -95,9 +95,12 @@ class LanguageModel(Model):
         source_embeddings = embeddings[:, 0:-1, :]
         # do processing stuff here
         mask = get_text_field_mask(tokens)[:, 0:-1]
+
+        # NOTE, need to confirm that this is getting the right output of the transformer
         # calculate logits of the next context
         trans_out = self.transformer(source_embeddings, mask)[0]
 
+        # NOTE, is the dimensionality of the linear layer correct
         # shape (batch_size, timesteps, vocab_size)
         logits = self.linear(trans_out)
 

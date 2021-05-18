@@ -30,6 +30,11 @@ from data import WikiTextReader
 from tokenizer import WikiTextTokenizer
 from model import LanguageModel
 
+import sys
+
+sys.path.append("../")
+from utils.misc_utils import get_model_size
+
 if __name__ == "__main__":
     # Build tokenizer
     # ===============
@@ -62,7 +67,7 @@ if __name__ == "__main__":
     # ========================
     train_data_loader = MultiProcessDataLoader(
         reader=reader,
-        data_path=os.path.join(config.WIKI_RAW_DIR , "wiki.train.raw"),
+        data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"),
         batch_size=config.BATCH_SIZE,
         shuffle=True,
         max_instances_in_memory=None,
@@ -72,7 +77,7 @@ if __name__ == "__main__":
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
         reader=reader,
-        data_path=os.path.join(config.WIKI_RAW_DIR , "wiki.valid.raw"),
+        data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.valid.raw"),
         batch_size=config.BATCH_SIZE,
         shuffle=False,
         max_instances_in_memory=None,
@@ -103,6 +108,7 @@ if __name__ == "__main__":
 
     # note, count_parmeters now returns a string for easier readability
     print('parameters:', model.count_parameters())
+    print(get_model_size(model, saved=False))
 
     # Run training
     # ============

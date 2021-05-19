@@ -3,7 +3,7 @@ import os
 import zipfile
 
 import sys; sys.path.append('../')
-from count import config
+from src.count import config
 
 
 def download(url, data_dir):

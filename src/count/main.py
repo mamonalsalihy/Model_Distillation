@@ -34,7 +34,7 @@ from model import LanguageModel
 import sys
 
 sys.path.append("../")
-from utils.misc_utils import get_model_size
+from src.utils.misc_utils import get_model_size
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import numpy
 from itertools import islice
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 import os
+import logging
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -34,6 +35,7 @@ import sys
 
 sys.path.append("../")
 from utils.misc_utils import get_model_size
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 if __name__ == "__main__":
     # Build tokenizer

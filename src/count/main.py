@@ -5,6 +5,7 @@ import numpy
 from itertools import islice
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 import os
+import logging
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -29,6 +30,13 @@ import config
 from data import WikiTextReader
 from tokenizer import WikiTextTokenizer
 from model import LanguageModel
+
+import sys
+
+sys.path.append("../")
+from src.utils.misc_utils import get_model_size
+
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
     # Build tokenizer
@@ -105,6 +113,7 @@ if __name__ == "__main__":
 
     # note, count_parmeters now returns a string for easier readability
     print("parameters:", model.count_parameters())
+    print(get_model_size(model, saved=False))
 
     # Run training
     # ============

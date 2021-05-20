@@ -15,6 +15,7 @@ TOKENIZER = os.path.join(ROOT, "unigram-tokenizer.json")
 DATA_DIR = os.path.join(ROOT, "data")
 VOCAB_DIR = os.path.join(ROOT, "data", "vocab")
 WIKI_RAW_DIR = os.path.join(ROOT, "data", "wikitext-103-raw")
+SRC_DIR = os.path.join(ROOT, "src")
 
 # Parameters
 VOCAB_SIZE = 30_000

@@ -33,10 +33,10 @@ from model import LanguageModel
 
 import sys
 
-sys.path.append("../")
+sys.path.append(config.SRC_DIR)
 from src.utils.misc_utils import get_model_size
 
-logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
     # Build tokenizer

@@ -22,13 +22,18 @@ from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 
 # Local
-from tokenizer import WikiTextTokenizer
-import config
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.count import config
+from src.count.tokenizer import WikiTextTokenizer
 
 logger = logging.getLogger(__name__)
 
 
-@DatasetReader.register("wikitext-reader")
+@DatasetReader.register("wikitext-reader", exist_ok=True)
 class WikiTextReader(DatasetReader):
     """
     Creates `Instances` suitable for use in predicting a single next token using a language

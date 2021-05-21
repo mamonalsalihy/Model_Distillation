@@ -26,14 +26,15 @@ from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
 # Local
-import config
-from data import WikiTextReader
-from tokenizer import WikiTextTokenizer
-from model import LanguageModel
-
 import sys
+from pathlib import Path
 
-sys.path.append(config.SRC_DIR)
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.count import config
+from src.count.data import WikiTextReader
+from src.count.tokenizer import WikiTextTokenizer
+from src.count.model import SimpleTransformerLanguageModel
 from src.utils.misc_utils import get_model_size
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     )
     val_data_loader.index_with(vocab)
 
-    model = LanguageModel(
+    model = SimpleTransformerLanguageModel(
         vocab=vocab,
         embedder=embedder,
         num_hidden_layers=config.TRANSFORMER_LAYERS,

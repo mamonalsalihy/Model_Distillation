@@ -33,12 +33,17 @@ from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.nn.activations import Activation
 
 # Local
-from data import WikiTextReader
-import config
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.count.data import WikiTextReader
+from src.count import config
 
 
-@Model.register("language-model")
-class LanguageModel(Model):
+@Model.register("simple-transformer-language-model", exist_ok=True)
+class SimpleTransformerLanguageModel(Model):
     def __init__(
         self,
         vocab: Vocabulary,

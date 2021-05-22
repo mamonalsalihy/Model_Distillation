@@ -1,6 +1,7 @@
 import logging
 import os
 from itertools import islice
+import math
 from typing import Dict, Iterable
 
 # AllenNLP
@@ -51,6 +52,10 @@ class WikiTextReader(DatasetReader):
     exclusive : `bool`, optional (default = `True`)
         If True, each generated instance will have no overlap with the previous. If False, each
         generated instance will have an overlap of all but 1 (i.e., shifted forward one token).
+    min_context_len : `int`, optional (default = `None`)
+        Determines the minimum number of tokens an instance must have in its context (not including
+        the next token added as a target). If `None`, defaults to `context`. Otherwise, must be at
+        least 1.
     """
 
     def __init__(
@@ -60,6 +65,7 @@ class WikiTextReader(DatasetReader):
         token_indexers: Dict[str, TokenIndexer] = None,
         split_on: str = "sentence",
         exclusive: bool = True,
+        min_context_len: int = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -72,6 +78,12 @@ class WikiTextReader(DatasetReader):
         self._split_on = split_on
         self._context = context
         self._exclusive = exclusive
+        if min_context_len is None:
+            self._min_context_len = self._context
+        else:
+            self._min_context_len = min_context_len
+        # make sure we actually have a context
+        assert self._min_context_len >= 1, f"min_context_len must be >= 1"
 
     def _single_process_read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
@@ -106,24 +118,21 @@ class WikiTextReader(DatasetReader):
                 # if we want exclusive instances, make sure the step size is self._context
                 # otherwise, just use the normal 1
                 step_size = self._context if self._exclusive else 1
-                for start in range(0, len(tokens) - self._context, step_size):
-                    end = start + self._context + 1
-                    yield self.text_to_instance(tokens[start:end])
+                for start in range(0, len(tokens), step_size):
+                    instance = tokens[start : start + self._context + 1]
+                    # check whether the context length meets the minimum requirements
+                    # don't forget to add 1 since the last token is not part of the context
+                    if len(instance) >= self._min_context_len + 1:
+                        yield self.text_to_instance(instance)
         elif self._split_on.lower() == "paragraph":
-            # split text into paragraphs, add cls/sep tokens to each sentence, return
-            paragraphs = text.split("\n")
-            for paragraph in paragraphs:
-                # paragraph tokens
-                tokens = []
-                sentences = self._sentence_splitter.split_sentences(paragraph)
-                for sent in sentences:
-                    sent_tokens = self._tokenizer.tokenize(sent)
-                    # tokenize sentence and add to paragraph
-                    tokens.extend(sent_tokens)
-                step_size = self._context if self._exclusive else 1
-                for start in range(0, len(tokens) - self._context, step_size):
-                    end = start + self._context + 1
-                    yield self.text_to_instance(tokens[start:end])
+            # list of tokens in the paragraph
+            tokens = []
+            sentences = self._sentence_splitter.split_sentences(text)
+            tokens = self._tokenizer.tokenize_multiple(sentences, add_special_tokens=True)
+            step_size = self._context if self._exclusive else 1
+            for start in range(0, len(tokens) - self._context, step_size):
+                end = start + self._context + 1
+                yield self.text_to_instance(tokens[start:end])
 
         else:
             raise NotImplementedError(
@@ -163,15 +172,16 @@ if __name__ == "__main__":
         add_special_tokens=True,
     )
     reader = WikiTextReader(
-        context=10,
+        context=30,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         exclusive=True,
-        split_on="sentence",
-        max_instances=40,
+        split_on="paragraph",
+        max_instances=10,
+        min_context_len=1,
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,
     )
     dataset = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
-    for i in islice(dataset, 4):
-        print(i)
+    for i in dataset:
+        print(i.fields["tokens"])

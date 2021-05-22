@@ -51,13 +51,13 @@ class WikiTextTokenizer(Tokenizer):
         self._tokenizer_lowercases = "a" in self.tokenizer.encode("A").tokens
 
     @overrides
-    def tokenize(self, text: str) -> List[Token]:
+    def tokenize(self, text: str, add_special_tokens: bool = True) -> List[Token]:
         """
         This method only handles a single sentence (or sequence) of text.
         """
         encoded_tokens = self.tokenizer.encode(
             sequence=text,
-            add_special_tokens=True,
+            add_special_tokens=add_special_tokens,
         )
         # token_ids contains a final list with ids for both regular and special tokens
         token_ids, token_type_ids, special_tokens_mask, token_offsets = (
@@ -95,6 +95,22 @@ class WikiTextTokenizer(Tokenizer):
             )
 
         return tokens
+
+    def tokenize_multiple(self, texts: List[str], add_special_tokens: bool = True) -> List[Token]:
+        tokenized_sents = [
+            self.tokenize(text=t, add_special_tokens=add_special_tokens) for t in texts
+        ]
+        all_tokens = [token for sent in tokenized_sents for token in sent]
+        # if we aren't adding special tokens, we're already done; just return the joined lists
+        if not add_special_tokens:
+            return all_tokens
+
+        # otherwise, we gotta filter out the cls tokens that we don't want
+        # save the cls token
+        cls_token = all_tokens[0]
+        assert cls_token.text == config.CLS
+
+        return [cls_token] + list(filter(lambda x: x.text != config.CLS, all_tokens))
 
     def num_special_tokens_for_sequence(self) -> int:
         return self.tokenizer.num_special_tokens_to_add(is_pair=False)

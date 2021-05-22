@@ -176,7 +176,7 @@ if __name__ == "__main__":
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         exclusive=True,
-        split_on="paragraph",
+        split_on="sentence",
         max_instances=10,
         min_context_len=1,
         manual_distributed_sharding=True,

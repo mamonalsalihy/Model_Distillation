@@ -1,5 +1,4 @@
 # STL
-import copy
 from typing import Optional, List
 
 # AllenNLP
@@ -93,7 +92,8 @@ class TransformerDecoderLayer(nn.Module):
         target : torch.Tensor
             Sequence of embeddings to decode, of shape `(batch_size, N, embedding_dim)`
         attn_mask : torch.Tensor
-            Binary matrix indicating which items in `target` to attend to (1) or ignore (0) at each timestep. Shape is `(batch_size, N, N)`
+            Binary matrix indicating which items in `target` to attend to (1) or ignore (0) at each
+            timestep. Shape is `(batch_size, N, N)`
         key_padding_mask : torch.Tensor
             Binary matrix indicating which items in `target` are padding.
 
@@ -103,6 +103,11 @@ class TransformerDecoderLayer(nn.Module):
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
         target = target.permute(1, 0, 2)
+        print(target.device)
+        print(attn_mask.device)
+        print(key_padding_mask.device)
+        print(self.device)
+        input()
         attn_target, weights = self.self_attn(
             key=target,
             value=target,
@@ -121,5 +126,4 @@ if __name__ == "__main__":
     trg = torch.ones(4, 30, 128)
     mask = torch.tril(torch.ones(30, 30))
     mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0)
-    print(mask)
     print(decoder(trg, mask))

@@ -64,17 +64,6 @@ class SimpleTransformerLanguageModel(Model):
         self.embedder = embedder
         self.activation = Activation.by_name(activation)()
         self.decoder = decoder
-        # question: what is intermediate size?
-        # self.transformer = TransformerStack(
-        #     num_hidden_layers=num_hidden_layers,
-        #     hidden_size=hidden_size,
-        #     intermediate_size=intermediate_size,
-        #     num_attention_heads=num_attention_heads,
-        #     hidden_dropout=hidden_dropout,
-        #     activation=self.activation,
-        #     add_cross_attention=cross_attention,
-        # )
-        self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word
         self.vocab_size = vocab.get_vocab_size()
@@ -85,6 +74,7 @@ class SimpleTransformerLanguageModel(Model):
         self.dif_tokenizers_ratio = config.DIF_TOKENIZERS_RATIO
 
         self.metric = Perplexity()
+        self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
     def forward(
         self,
@@ -93,27 +83,29 @@ class SimpleTransformerLanguageModel(Model):
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 
-        # get source and targets from tokens
+        # Get source and target
+        # =====================
         source = token_ids[:, :-1]
-        target = token_ids[:, -1]
+        target = token_ids[:, 1:]
 
-        # do embedding stuff here
+        # Embed the tokens
+        # ================
         # shape (batch_size, timesteps, embedding_size)
         embeddings = self.embedder(tokens)
-
         # get the first part of the window
         source_embeddings = embeddings[:, :-1, :]
-        # do processing stuff here
-        key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
-        mask = torch.tril(torch.ones(30, 30))
-        mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0)
 
-        # NOTE, need to confirm that this is getting the right output of the transformer
-        # calculate logits of the next context
+        # Construct attention masks
+        # =========================
+        key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1].cuda()
+        seq_len = source.shape[1]
+        mask = torch.tril(torch.ones(seq_len, seq_len))
+        mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0).cuda()
+
+        # Run through the decoder
+        # =======================
         decoded = self.decoder(source_embeddings, attn_mask=mask, key_padding_mask=key_mask)
-
-        # shape (batch_size, seq_len, vocab_size)
-        logits = self.linear(decoded)
+        logits = self.linear(decoded)  # shape (batch_size, seq_len, vocab_size)
         probs = torch.nn.functional.softmax(logits, dim=2)
 
         # reshape them because they aren't contiguous in memory
@@ -122,17 +114,18 @@ class SimpleTransformerLanguageModel(Model):
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
 
+        print(preds)
+
+        # Calculate loss and normalize
+        # ============================
         # temp = torch.nn.functional.cross_entropy(
         #     preds, target, ignore_index=self.PAD_IDX, reduction="sum"
         # )
         # loss = temp / self.normalizer
-
         # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
 
-        # Calculates loss without normalizing by length, since we're only predicting the next token each time.
-        loss = torch.nn.functional.cross_entropy(
-            preds, target, ignore_index=self.PAD_IDX, reduction="mean"
-        )
+        # just for testing
+        loss = self.loss(preds, target)
         self.metric(loss)
 
         return {"logits": logits, "loss": loss, "probs": probs}

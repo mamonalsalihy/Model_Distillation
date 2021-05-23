@@ -19,7 +19,7 @@ SRC_DIR = os.path.join(ROOT, "src")
 
 # Parameters
 VOCAB_SIZE = 30_000
-DEVICE_1 = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE_1 = 0 if torch.cuda.is_available() else -1
 
 # Transformer Parameters
 TRANSFORMER_LAYERS = 1

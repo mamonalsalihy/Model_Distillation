@@ -36,8 +36,9 @@ from src.count.data import WikiTextReader
 from src.count.tokenizer import WikiTextTokenizer
 from src.count.model import SimpleTransformerLanguageModel
 from src.utils.misc_utils import get_model_size
+from src.count.decoder import TransformerDecoder
 
-logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
+# logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
     # Build tokenizer
@@ -53,6 +54,9 @@ if __name__ == "__main__":
         context=config.CONTEXT_WINDOW,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
+        exclusive=True,
+        split_on="sentence",
+        min_context_len=2,
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,
         max_instances=config.MAX_INSTANCES,
@@ -92,14 +96,18 @@ if __name__ == "__main__":
     )
     val_data_loader.index_with(vocab)
 
-    decoder_layer = nn.TransformerDecoderLayer(
-        d_model=config.EMBEDDING_DIMENSION,
-        nhead=config.NUM_ATTENTION_HEADS,
-        dim_feedforward=config.HIDDEN_DIMENSION,
+    # Make our custom decoder
+    # =======================
+    decoder = TransformerDecoder(
+        input_dim=config.EMBEDDING_DIMENSION,
+        num_attention_heads=config.NUM_ATTENTION_HEADS,
+        num_layers=config.TRANSFORMER_LAYERS,
+        hidden_dim=config.HIDDEN_DIMENSION,
         dropout=config.DROPOUT,
         activation=config.ACTIVATION,
+        norm=None,
     )
-    decoder = nn.TransformerDecoder(decoder_layer, config.TRANSFORMER_LAYERS)
+
     model = SimpleTransformerLanguageModel(
         vocab=vocab,
         embedder=embedder,

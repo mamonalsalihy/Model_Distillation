@@ -11,12 +11,17 @@ from tokenizers import Tokenizer as HFTokenizer
 from tokenizers.processors import BertProcessing
 
 # Local
-import config
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.count import config
 
 logger = logging.getLogger(__name__)
 
 
-@Tokenizer.register("wikitext-tokenizer")
+@Tokenizer.register("wikitext-tokenizer", exist_ok=True)
 class WikiTextTokenizer(Tokenizer):
     """An AllenNLP wrapper around a Huggingface tokenizer.
     Registered as a `Tokenizer` with name "wikitext-tokenizer".

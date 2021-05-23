@@ -15,6 +15,7 @@ TOKENIZER = os.path.join(ROOT, "unigram-tokenizer.json")
 DATA_DIR = os.path.join(ROOT, "data")
 VOCAB_DIR = os.path.join(ROOT, "data", "vocab")
 WIKI_RAW_DIR = os.path.join(ROOT, "data", "wikitext-103-raw")
+SRC_DIR = os.path.join(ROOT, "src")
 
 # Parameters
 VOCAB_SIZE = 30_000
@@ -31,7 +32,7 @@ ACTIVATION = "relu"
 CONTEXT_WINDOW = 10
 
 # Training Parameters
-NUM_EPOCHS = 1
+NUM_EPOCHS = 50
 LEARNING_RATE = 1e-5
 BATCH_SIZE = 4
 PATIENCE = 10

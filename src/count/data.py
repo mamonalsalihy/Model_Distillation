@@ -10,6 +10,8 @@ from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 # Data types
 from allennlp.data.fields import Field, TextField
 from allennlp.data.instance import Instance
+from allennlp.data import Vocabulary
+from allennlp.data.data_loaders import SimpleDataLoader
 
 # Indexers
 from allennlp.data.token_indexers import SingleIdTokenIndexer
@@ -21,13 +23,18 @@ from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 
 # Local
-from tokenizer import WikiTextTokenizer
-import config
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.count import config
+from src.count.tokenizer import WikiTextTokenizer
 
 logger = logging.getLogger(__name__)
 
 
-@DatasetReader.register("wikitext-reader")
+@DatasetReader.register("wikitext-reader", exist_ok=True)
 class WikiTextReader(DatasetReader):
     """
     Creates `Instances` suitable for use in predicting a single next token using a language
@@ -157,8 +164,8 @@ class WikiTextReader(DatasetReader):
             Instance containing a `tokens` field and a `target` field.
         """
 
-        input_field = TextField(tokens)
-        fields: Dict[str, Field] = {"tokens": input_field}
+        tokens = TextField(tokens)
+        fields: Dict[str, Field] = {"tokens": tokens}
         return Instance(fields)
 
     def apply_token_indexers(self, instance):

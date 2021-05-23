@@ -36,12 +36,17 @@ from allennlp.nn.activations import Activation
 import torch.nn as nn
 
 # Local
-from data import WikiTextReader
-import config
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.count.data import WikiTextReader
+from src.count import config
 
 
-@Model.register("language-model")
-class LanguageModel(Model):
+@Model.register("simple-transformer-language-model", exist_ok=True)
+class SimpleTransformerLanguageModel(Model):
     def __init__(
         self,
         vocab: Vocabulary,
@@ -53,7 +58,6 @@ class LanguageModel(Model):
         num_attention_heads: int,
         hidden_dropout: float = 0.2,
         activation: str = "relu",
-        cross_attention: bool = False,
     ) -> None:
         super().__init__(vocab)
 
@@ -91,7 +95,7 @@ class LanguageModel(Model):
 
         # get source and targets from tokens
         source = token_ids[:, :-1]
-        target = token_ids[:, 1:]
+        target = token_ids[:, -1]
 
         # do embedding stuff here
         # shape (batch_size, timesteps, embedding_size)
@@ -108,10 +112,8 @@ class LanguageModel(Model):
         # calculate logits of the next context
         decoded = self.decoder(source_embeddings, attn_mask=mask, key_padding_mask=key_mask)
 
-        # NOTE, is the dimensionality of the linear layer correct
-        # shape (batch_size, timesteps, vocab_size)
-        logits = self.linear(trans_out)
-
+        # shape (batch_size, seq_len, vocab_size)
+        logits = self.linear(decoded)
         probs = torch.nn.functional.softmax(logits, dim=2)
 
         # reshape them because they aren't contiguous in memory
@@ -120,15 +122,18 @@ class LanguageModel(Model):
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
 
-        temp = torch.nn.functional.cross_entropy(
-            preds, target, ignore_index=self.PAD_IDX, reduction="sum"
+        # temp = torch.nn.functional.cross_entropy(
+        #     preds, target, ignore_index=self.PAD_IDX, reduction="sum"
+        # )
+        # loss = temp / self.normalizer
+
+        # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
+
+        # Calculates loss without normalizing by length, since we're only predicting the next token each time.
+        loss = torch.nn.functional.cross_entropy(
+            preds, target, ignore_index=self.PAD_IDX, reduction="mean"
         )
-        loss = temp / self.normalizer
-
-        new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
-
-        # calculates the perplexity for the model w.r.t new normalizer
-        self.metric(new_normalized)
+        self.metric(loss)
 
         return {"logits": logits, "loss": loss, "probs": probs}
 

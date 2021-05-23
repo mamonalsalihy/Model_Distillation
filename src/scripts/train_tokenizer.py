@@ -9,7 +9,7 @@ from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer, Wo
 import sys
 
 sys.path.append("../")
-from count import tokenizer, config
+from count import config
 import os
 
 
@@ -67,7 +67,6 @@ def train(
 
 if __name__ == "__main__":
     ALGORITHM = "unigram"
-    print(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
     FILES = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")]
     OUTPUT = config.TOKENIZER
     VOCAB_SIZE = 30_000

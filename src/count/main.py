@@ -35,7 +35,8 @@ import sys
 
 sys.path.append("../")
 from src.utils.misc_utils import get_model_size
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
     # Build tokenizer
@@ -62,7 +63,9 @@ if __name__ == "__main__":
 
     # Create embedder for the model
     # =============================
-    embedding = Embedding(num_embeddings=vocab.get_vocab_size(), embedding_dim=config.EMBEDDING_DIMENSION)
+    embedding = Embedding(
+        num_embeddings=vocab.get_vocab_size(), embedding_dim=config.EMBEDDING_DIMENSION
+    )
     embedder = BasicTextFieldEmbedder(token_embedders={"tokens": embedding})
 
     # Setup model and training
@@ -74,7 +77,7 @@ if __name__ == "__main__":
         shuffle=True,
         max_instances_in_memory=None,
         num_workers=4,
-        start_method='spawn'
+        start_method="spawn",
     )
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
@@ -84,13 +87,22 @@ if __name__ == "__main__":
         shuffle=False,
         max_instances_in_memory=None,
         num_workers=4,
-        start_method='spawn'
+        start_method="spawn",
     )
     val_data_loader.index_with(vocab)
 
+    decoder_layer = nn.TransformerDecoderLayer(
+        d_model=config.EMBEDDING_DIMENSION,
+        nhead=config.NUM_ATTENTION_HEADS,
+        dim_feedforward=config.HIDDEN_DIMENSION,
+        dropout=config.DROPOUT,
+        activation=config.ACTIVATION,
+    )
+    decoder = nn.TransformerDecoder(decoder_layer, config.TRANSFORMER_LAYERS)
     model = LanguageModel(
         vocab=vocab,
         embedder=embedder,
+        decoder=decoder,
         num_hidden_layers=config.TRANSFORMER_LAYERS,
         hidden_size=config.EMBEDDING_DIMENSION,
         intermediate_size=config.HIDDEN_DIMENSION,
@@ -109,7 +121,7 @@ if __name__ == "__main__":
     )
 
     # note, count_parmeters now returns a string for easier readability
-    print('parameters:', model.count_parameters())
+    print("parameters:", model.count_parameters())
     print(get_model_size(model, saved=False))
 
     # Run training

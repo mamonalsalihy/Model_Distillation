@@ -25,6 +25,7 @@ TRANSFORMER_LAYERS = 1
 EMBEDDING_DIMENSION = 8
 HIDDEN_DIMENSION = 16
 NUM_ATTENTION_HEADS = 1
+ACTIVATION = "relu"
 
 # Hyper-parameters
 CONTEXT_WINDOW = 10
@@ -35,6 +36,7 @@ LEARNING_RATE = 1e-5
 BATCH_SIZE = 4
 PATIENCE = 10
 MAX_INSTANCES = 100
+DROPOUT = 0.2
 
 # Special tokens
 PAD = "[PAD]"
@@ -44,5 +46,5 @@ SEP = "[SEP]"
 
 # Constants
 # Currently the denominator is arbitrary. It should be the total number of tokens from the new tokenizer.
-# Support for subset training has yet to be added. 
+# Support for subset training has yet to be added.
 DIF_TOKENIZERS_RATIO = 101_425_671 / 111_568_238

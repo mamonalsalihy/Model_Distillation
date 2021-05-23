@@ -32,6 +32,9 @@ from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.nn.activations import Activation
 
+# Torch transformer
+import torch.nn as nn
+
 # Local
 from data import WikiTextReader
 import config
@@ -40,31 +43,34 @@ import config
 @Model.register("language-model")
 class LanguageModel(Model):
     def __init__(
-            self,
-            vocab: Vocabulary,
-            embedder: TextFieldEmbedder,
-            num_hidden_layers: int,
-            hidden_size: int,
-            intermediate_size: int,
-            num_attention_heads: int,
-            hidden_dropout: float = 0.2,
-            activation: str = "relu",
-            cross_attention: bool = False,
+        self,
+        vocab: Vocabulary,
+        embedder: TextFieldEmbedder,
+        decoder: nn.Module,
+        num_hidden_layers: int,
+        hidden_size: int,
+        intermediate_size: int,
+        num_attention_heads: int,
+        hidden_dropout: float = 0.2,
+        activation: str = "relu",
+        cross_attention: bool = False,
     ) -> None:
         super().__init__(vocab)
 
         self.embedder = embedder
         self.activation = Activation.by_name(activation)()
+        self.decoder = decoder
         # question: what is intermediate size?
-        self.transformer = TransformerStack(
-            num_hidden_layers=num_hidden_layers,
-            hidden_size=hidden_size,
-            intermediate_size=intermediate_size,
-            num_attention_heads=num_attention_heads,
-            hidden_dropout=hidden_dropout,
-            activation=self.activation,
-            add_cross_attention=cross_attention,
-        )
+        # self.transformer = TransformerStack(
+        #     num_hidden_layers=num_hidden_layers,
+        #     hidden_size=hidden_size,
+        #     intermediate_size=intermediate_size,
+        #     num_attention_heads=num_attention_heads,
+        #     hidden_dropout=hidden_dropout,
+        #     activation=self.activation,
+        #     add_cross_attention=cross_attention,
+        # )
+        self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word
         self.vocab_size = vocab.get_vocab_size()
@@ -77,8 +83,8 @@ class LanguageModel(Model):
         self.metric = Perplexity()
 
     def forward(
-            self,
-            tokens: TextFieldTensors,
+        self,
+        tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
@@ -92,16 +98,15 @@ class LanguageModel(Model):
         embeddings = self.embedder(tokens)
 
         # get the first part of the window
-        source_embeddings = embeddings[:, 0:-1, :]
+        source_embeddings = embeddings[:, :-1, :]
         # do processing stuff here
-        mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, 0:-1]
-        # open issue: how are we going to resolve this mask
-        # it is currently always true
-        # is the behavior we want?
+        key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
+        mask = torch.tril(torch.ones(30, 30))
+        mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0)
 
         # NOTE, need to confirm that this is getting the right output of the transformer
         # calculate logits of the next context
-        trans_out = self.transformer(source_embeddings, mask)[0]
+        decoded = self.decoder(source_embeddings, attn_mask=mask, key_padding_mask=key_mask)
 
         # NOTE, is the dimensionality of the linear layer correct
         # shape (batch_size, timesteps, vocab_size)
@@ -115,7 +120,9 @@ class LanguageModel(Model):
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
 
-        temp = torch.nn.functional.cross_entropy(preds, target, ignore_index=self.PAD_IDX, reduction='sum')
+        temp = torch.nn.functional.cross_entropy(
+            preds, target, ignore_index=self.PAD_IDX, reduction="sum"
+        )
         loss = temp / self.normalizer
 
         new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
@@ -126,7 +133,7 @@ class LanguageModel(Model):
         return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
-            self, output_dict: Dict[str, torch.Tensor]
+        self, output_dict: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Takes logits from `forward` and computes the corresponding label
 
@@ -157,5 +164,5 @@ class LanguageModel(Model):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)
         millions = total // 1_000_000
         thousands = (total - millions * 1_000_000) // 1_000
-        string = str(millions) + '.' + str(thousands) + 'M'
+        string = str(millions) + "." + str(thousands) + "M"
         return string

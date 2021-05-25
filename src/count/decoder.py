@@ -14,7 +14,11 @@ import torch
 torch.manual_seed(0)
 
 # Local
-import config
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 
 
 class TransformerDecoder(nn.Module):
@@ -103,11 +107,6 @@ class TransformerDecoderLayer(nn.Module):
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
         target = target.permute(1, 0, 2)
-        print(target.device)
-        print(attn_mask.device)
-        print(key_padding_mask.device)
-        print(self.device)
-        input()
         attn_target, weights = self.self_attn(
             key=target,
             value=target,

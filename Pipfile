@@ -8,6 +8,7 @@ allennlp = "*"
 torch = "*"
 tokenizers = "*"
 transformers = "*"
+wget = "*"
 
 [dev-packages]
 

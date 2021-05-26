@@ -3,9 +3,10 @@
 Hyperparameters should go in the AllenNLP config file, whenever we manage to get that working.
 """
 
-from pathlib import Path
-import torch
 import os
+from pathlib import Path
+
+import torch
 
 # Project root
 ROOT = str(Path(__file__).resolve().parents[2])
@@ -22,21 +23,22 @@ VOCAB_SIZE = 30_000
 DEVICE_1 = 0 if torch.cuda.is_available() else -1
 
 # Transformer Parameters
-TRANSFORMER_LAYERS = 1
-EMBEDDING_DIMENSION = 8
-HIDDEN_DIMENSION = 16
-NUM_ATTENTION_HEADS = 1
+TRANSFORMER_LAYERS = 4
+EMBEDDING_DIMENSION = 32
+HIDDEN_DIMENSION = 64
+NUM_ATTENTION_HEADS = 4
 ACTIVATION = "relu"
 
 # Hyper-parameters
-CONTEXT_WINDOW = 10
+CONTEXT_WINDOW = 64
 
 # Training Parameters
 NUM_EPOCHS = 50
-LEARNING_RATE = 1e-5
-BATCH_SIZE = 4
+LEARNING_RATE = 2.5e-4
+BATCH_SIZE = 32
 PATIENCE = 10
-MAX_INSTANCES = 100
+MAX_INSTANCES = None
+MAX_INSTANCES_IN_MEMORY = 4_000
 DROPOUT = 0.2
 
 # Special tokens

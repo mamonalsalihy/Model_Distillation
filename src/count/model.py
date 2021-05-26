@@ -1,11 +1,13 @@
 # STL
+import sys
+from pathlib import Path
 from typing import Dict
 
 import numpy
-
-# Utilities
 import torch
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+
+# Torch transformer
+import torch.nn as nn
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -18,6 +20,12 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.models import Model
 from allennlp.modules import Embedding, TextFieldEmbedder
 
+# Layers
+from allennlp.modules.attention import Attention
+from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.modules.transformer import TransformerLayer, TransformerStack
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+
 # Inference
 from allennlp.predictors.predictor import Predictor
 
@@ -25,24 +33,12 @@ from allennlp.predictors.predictor import Predictor
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
-# Layers
-from allennlp.modules.attention import Attention
-from allennlp.modules.transformer import TransformerLayer, TransformerStack
-from allennlp.modules import Embedding, TextFieldEmbedder
-from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
-from allennlp.nn.activations import Activation
-
-# Torch transformer
-import torch.nn as nn
-
-# Local
-import sys
-from pathlib import Path
-
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-from src.count.data import WikiTextReader
+# Local
 from src.count import config
+from src.count.data import WikiTextReader
+from src.count.decoders.base_decoder import Decoder
 
 
 @Model.register("simple-transformer-language-model", exist_ok=True)
@@ -51,18 +47,12 @@ class SimpleTransformerLanguageModel(Model):
         self,
         vocab: Vocabulary,
         embedder: TextFieldEmbedder,
-        decoder: nn.Module,
-        num_hidden_layers: int,
+        decoder: Decoder,
         hidden_size: int,
-        intermediate_size: int,
-        num_attention_heads: int,
-        hidden_dropout: float = 0.2,
-        activation: str = "relu",
     ) -> None:
         super().__init__(vocab)
 
         self.embedder = embedder
-        self.activation = Activation.by_name(activation)()
         self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word
@@ -98,6 +88,8 @@ class SimpleTransformerLanguageModel(Model):
         # Construct attention masks
         # =========================
         key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1].cuda()
+        # invert the mask, so we have True where padding is and False where words are
+        key_mask = ~key_mask
         seq_len = source.shape[1]
         mask = torch.tril(torch.ones(seq_len, seq_len))
         mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0).cuda()
@@ -113,8 +105,6 @@ class SimpleTransformerLanguageModel(Model):
         # https://discuss.pytorch.org/t/contigious-vs-non-contigious-tensor/30107
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
-
-        print(preds)
 
         # Calculate loss and normalize
         # ============================

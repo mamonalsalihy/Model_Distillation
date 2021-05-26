@@ -1,17 +1,21 @@
 import logging
-import os
-from itertools import islice
 import math
+import os
+
+# STL
+import sys
+from itertools import islice
+from pathlib import Path
 from typing import Dict, Iterable
 
 # AllenNLP
+from allennlp.data import Vocabulary
+from allennlp.data.data_loaders import SimpleDataLoader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 
 # Data types
 from allennlp.data.fields import Field, TextField
 from allennlp.data.instance import Instance
-from allennlp.data import Vocabulary
-from allennlp.data.data_loaders import SimpleDataLoader
 
 # Indexers
 from allennlp.data.token_indexers import SingleIdTokenIndexer
@@ -22,12 +26,9 @@ from allennlp.data.tokenizers import Token, WhitespaceTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 
-# Local
-import sys
-from pathlib import Path
-
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+# Local
 from src.count import config
 from src.count.tokenizer import WikiTextTokenizer
 

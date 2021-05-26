@@ -1,4 +1,6 @@
 import logging
+import sys
+from pathlib import Path
 from typing import List
 
 # AllenNLP
@@ -10,12 +12,9 @@ from overrides import overrides
 from tokenizers import Tokenizer as HFTokenizer
 from tokenizers.processors import BertProcessing
 
-# Local
-import sys
-from pathlib import Path
-
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+# Local
 from src.count import config
 
 logger = logging.getLogger(__name__)

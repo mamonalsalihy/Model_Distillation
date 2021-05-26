@@ -1,5 +1,11 @@
 # STL
-from typing import Optional, List
+import sys
+from pathlib import Path
+from typing import List, Optional
+
+# Torch
+import torch.nn as nn
+import torch
 
 # AllenNLP
 from allennlp.models import Model
@@ -7,35 +13,45 @@ from allennlp.modules.feedforward import FeedForward
 from allennlp.modules.layer_norm import LayerNorm
 from allennlp.nn.activations import Activation
 
-# Torch
-import torch.nn as nn
-import torch
-
-torch.manual_seed(0)
-
-# Local
-import sys
-from pathlib import Path
-
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+# Local
+from src.count.decoders.base_decoder import Decoder
 
 
+@Decoder.register("gpt2-transformer-decoder")
 class TransformerDecoder(nn.Module):
     def __init__(
         self,
         input_dim: int,
+        hidden_dim: int,
         num_attention_heads: int,
         num_layers: int,
-        hidden_dim: int,
         dropout: float,
         activation: Optional[str] = "relu",
         norm: Optional[LayerNorm] = None,
         **kwargs,
-    ):
+    ) -> None:
+        """Simple Transformer-Decoder model (no encoder at all).
+
+        Arguments
+        ---------
+        input_dim : int
+            Embedding dimension of inputs.
+        hidden_dim : int
+            Dimension to use for decoded vectors
+        num_attention_heads : int
+            Number of attention heads to use.
+        num_layers : int
+            Number of decoder blocks to use.
+        dropout : float
+            Float between 0.0 and 1.0, probability of dropout.
+        activation : Optional[str]
+            Default is "relu"
+        """
         super().__init__(**kwargs)
         self.norm = norm
-        self.decoder_layers = []
+        decoder_layers = []
         for i in range(num_layers):
             layer = TransformerDecoderLayer(
                 input_dim=input_dim,
@@ -44,7 +60,9 @@ class TransformerDecoder(nn.Module):
                 dropout=dropout,
                 activation=activation,
             )
-            self.decoder_layers.append(layer)
+            decoder_layers.append(layer)
+
+        self.decoder_layers = nn.ModuleList(decoder_layers)
 
     def forward(
         self,
@@ -67,9 +85,24 @@ class TransformerDecoderLayer(nn.Module):
         num_attention_heads: int,
         hidden_dim: int,
         dropout: float,
-        activation: str = "relu",
+        activation: Optional[str] = "relu",
         **kwargs,
-    ):
+    ) -> None:
+        """Simple Transformer-Decoder block (no encoder at all).
+
+        Arguments
+        ---------
+        input_dim : int
+            Embedding dimension of inputs.
+        num_attention_heads : int
+            Number of attention heads to use.
+        hidden_dim : int
+            Dimension to use for decoded vectors
+        dropout : float
+            Float between 0.0 and 1.0, probability of dropout.
+        activation : Optional[str]
+            Default is "relu"
+        """
         super().__init__(**kwargs)
         self.self_attn = nn.MultiheadAttention(
             embed_dim=input_dim, num_heads=num_attention_heads, dropout=dropout
@@ -116,7 +149,8 @@ class TransformerDecoderLayer(nn.Module):
         )
         target = target + attn_target
         target = target.permute(1, 0, 2)
-        return self.feedforward(target)
+        target = self.feedforward(target)
+        return target
 
 
 if __name__ == "__main__":

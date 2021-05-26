@@ -1,15 +1,17 @@
 # Utilities
+import logging
+import os
+import sys
+from itertools import islice
+from pathlib import Path
+
+import numpy
 import numpy as np
 import torch
-import numpy
-from itertools import islice
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
-import os
-import logging
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
-from allennlp.data.data_loaders import SimpleDataLoader, MultiProcessDataLoader
+from allennlp.data.data_loaders import MultiProcessDataLoader, SimpleDataLoader
 from allennlp.data.fields import LabelField, TextField
 from allennlp.data.fields.text_field import TextFieldTensors
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
@@ -17,6 +19,7 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 # Modules
 from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -25,18 +28,15 @@ from allennlp.predictors.predictor import Predictor
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
-# Local
-import sys
-from pathlib import Path
-
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+# Local
 from src.count import config
 from src.count.data import WikiTextReader
-from src.count.tokenizer import WikiTextTokenizer
+from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.model import SimpleTransformerLanguageModel
+from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
-from src.count.decoder import TransformerDecoder
 
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
@@ -80,9 +80,9 @@ if __name__ == "__main__":
         data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"),
         batch_size=config.BATCH_SIZE,
         shuffle=True,
-        max_instances_in_memory=None,
+        max_instances_in_memory=config.MAX_INSTANCES_IN_MEMORY,
         num_workers=4,
-        start_method="spawn",
+        # start_method="spawn",
     )
     train_data_loader.index_with(vocab)
     val_data_loader = MultiProcessDataLoader(
@@ -90,9 +90,9 @@ if __name__ == "__main__":
         data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.valid.raw"),
         batch_size=config.BATCH_SIZE,
         shuffle=False,
-        max_instances_in_memory=None,
+        max_instances_in_memory=config.MAX_INSTANCES_IN_MEMORY,
         num_workers=4,
-        start_method="spawn",
+        # start_method="spawn",
     )
     val_data_loader.index_with(vocab)
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     model = SimpleTransformerLanguageModel(
         vocab=vocab,
         embedder=embedder,
-        decoder=decoder,
+        decoder=decoder.to(config.DEVICE_1),
         num_hidden_layers=config.TRANSFORMER_LAYERS,
         hidden_size=config.EMBEDDING_DIMENSION,
         intermediate_size=config.HIDDEN_DIMENSION,

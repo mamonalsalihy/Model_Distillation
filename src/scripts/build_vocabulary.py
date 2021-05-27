@@ -3,9 +3,10 @@ from allennlp.data import Vocabulary
 
 # Local
 import sys
+from pathlib import Path
 
-sys.path.append("../")
-from count import tokenizer, config
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from src.count import tokenizer, config
 
 
 if __name__ == "__main__":

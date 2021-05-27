@@ -1,11 +1,13 @@
 # STL
+import sys
+from pathlib import Path
 from typing import Dict
 
 import numpy
-
-# Utilities
 import torch
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+
+# Torch transformer
+import torch.nn as nn
 
 # AllenNLP
 from allennlp.data import Instance, Token, Vocabulary
@@ -18,6 +20,12 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.models import Model
 from allennlp.modules import Embedding, TextFieldEmbedder
 
+# Layers
+from allennlp.modules.attention import Attention
+from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.modules.transformer import TransformerLayer, TransformerStack
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+
 # Inference
 from allennlp.predictors.predictor import Predictor
 
@@ -25,46 +33,27 @@ from allennlp.predictors.predictor import Predictor
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
-# Layers
-from allennlp.modules.attention import Attention
-from allennlp.modules.transformer import TransformerLayer, TransformerStack
-from allennlp.modules import Embedding, TextFieldEmbedder
-from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
-from allennlp.nn.activations import Activation
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 # Local
-from data import WikiTextReader
-import config
+from src.count import config
+from src.count.data import WikiTextReader
+from src.count.decoders.base_decoder import Decoder
 
 
-@Model.register("language-model")
-class LanguageModel(Model):
+@Model.register("simple-transformer-language-model", exist_ok=True)
+class SimpleTransformerLanguageModel(Model):
     def __init__(
-            self,
-            vocab: Vocabulary,
-            embedder: TextFieldEmbedder,
-            num_hidden_layers: int,
-            hidden_size: int,
-            intermediate_size: int,
-            num_attention_heads: int,
-            hidden_dropout: float = 0.2,
-            activation: str = "relu",
-            cross_attention: bool = False,
+        self,
+        vocab: Vocabulary,
+        embedder: TextFieldEmbedder,
+        decoder: Decoder,
+        hidden_size: int,
     ) -> None:
         super().__init__(vocab)
 
         self.embedder = embedder
-        self.activation = Activation.by_name(activation)()
-        # question: what is intermediate size?
-        self.transformer = TransformerStack(
-            num_hidden_layers=num_hidden_layers,
-            hidden_size=hidden_size,
-            intermediate_size=intermediate_size,
-            num_attention_heads=num_attention_heads,
-            hidden_dropout=hidden_dropout,
-            activation=self.activation,
-            add_cross_attention=cross_attention,
-        )
+        self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word
         self.vocab_size = vocab.get_vocab_size()
@@ -75,38 +64,40 @@ class LanguageModel(Model):
         self.dif_tokenizers_ratio = config.DIF_TOKENIZERS_RATIO
 
         self.metric = Perplexity()
+        self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
     def forward(
-            self,
-            tokens: TextFieldTensors,
+        self,
+        tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 
-        # get source and targets from tokens
+        # Get source and target
+        # =====================
         source = token_ids[:, :-1]
         target = token_ids[:, 1:]
 
-        # do embedding stuff here
+        # Embed the tokens
+        # ================
         # shape (batch_size, timesteps, embedding_size)
         embeddings = self.embedder(tokens)
-
         # get the first part of the window
-        source_embeddings = embeddings[:, 0:-1, :]
-        # do processing stuff here
-        mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, 0:-1]
-        # open issue: how are we going to resolve this mask
-        # it is currently always true
-        # is the behavior we want?
+        source_embeddings = embeddings[:, :-1, :]
 
-        # NOTE, need to confirm that this is getting the right output of the transformer
-        # calculate logits of the next context
-        trans_out = self.transformer(source_embeddings, mask)[0]
+        # Construct attention masks
+        # =========================
+        key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1].cuda()
+        # invert the mask, so we have True where padding is and False where words are
+        key_mask = ~key_mask
+        seq_len = source.shape[1]
+        mask = torch.tril(torch.ones(seq_len, seq_len))
+        mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0).cuda()
 
-        # NOTE, is the dimensionality of the linear layer correct
-        # shape (batch_size, timesteps, vocab_size)
-        logits = self.linear(trans_out)
-
+        # Run through the decoder
+        # =======================
+        decoded = self.decoder(source_embeddings, attn_mask=mask, key_padding_mask=key_mask)
+        logits = self.linear(decoded)  # shape (batch_size, seq_len, vocab_size)
         probs = torch.nn.functional.softmax(logits, dim=2)
 
         # reshape them because they aren't contiguous in memory
@@ -115,18 +106,22 @@ class LanguageModel(Model):
         preds = logits.reshape(-1, self.vocab_size)
         target = target.reshape(-1)
 
-        temp = torch.nn.functional.cross_entropy(preds, target, ignore_index=self.PAD_IDX, reduction='sum')
-        loss = temp / self.normalizer
+        # Calculate loss and normalize
+        # ============================
+        # temp = torch.nn.functional.cross_entropy(
+        #     preds, target, ignore_index=self.PAD_IDX, reduction="sum"
+        # )
+        # loss = temp / self.normalizer
+        # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
 
-        new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
-
-        # calculates the perplexity for the model w.r.t new normalizer
-        self.metric(new_normalized)
+        # just for testing
+        loss = self.loss(preds, target)
+        self.metric(loss)
 
         return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(
-            self, output_dict: Dict[str, torch.Tensor]
+        self, output_dict: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Takes logits from `forward` and computes the corresponding label
 
@@ -157,5 +152,5 @@ class LanguageModel(Model):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)
         millions = total // 1_000_000
         thousands = (total - millions * 1_000_000) // 1_000
-        string = str(millions) + '.' + str(thousands) + 'M'
+        string = str(millions) + "." + str(thousands) + "M"
         return string

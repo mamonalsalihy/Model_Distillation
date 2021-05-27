@@ -2,7 +2,10 @@ import wget
 import os
 import zipfile
 
-import sys; sys.path.append('../')
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.count import config
 
 

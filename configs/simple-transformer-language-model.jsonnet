@@ -3,22 +3,22 @@ local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 128;
-local lr = 0.00075;  // 5 x 10 ^ -4
-local batch_size = 32;
-local max_instances = null;
+local lr = 0.001;  // 7.5 x 10 ^ -4
+local batch_size = 2;
+local max_instances = 8000;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 6;
-local embedding_dim = 196;
+local num_layers = 4;
+local embedding_dim = 128;
 local hidden_dim = 256;
-local num_attention_heads = 4;
+local num_attention_heads = 2;
 local activation = 'relu';
 
-local cuda_devices = [0, 1, 2, 3];
+local cuda_devices = [1, 2, 3, 4];
 
 local reader = {
   type: 'wikitext-reader',

@@ -127,8 +127,8 @@ if __name__ == "__main__":
     )
 
     # note, count_parmeters now returns a string for easier readability
-    # print("parameters:", model.count_parameters())
-    # print(get_model_size(model, saved=False))
+    print("parameters:", model.count_parameters())
+    print(get_model_size(model, saved=False))
 
     # Run training
     # ============

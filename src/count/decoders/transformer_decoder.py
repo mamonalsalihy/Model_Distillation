@@ -147,10 +147,9 @@ class TransformerDecoderLayer(nn.Module):
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
         )
+        # not sure why we add instead of just use attn_target but that's how they do it in pytorch
         target = target + attn_target
-        target = target.permute(1, 0, 2)
-        target = self.feedforward(target)
-        return target
+        return self.feedforward(target.permute(1, 0, 2))
 
 
 if __name__ == "__main__":

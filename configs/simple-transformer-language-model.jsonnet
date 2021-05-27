@@ -2,9 +2,9 @@
 local root = '/home/offendo/src/the-count/';
 
 // Training
-local context = 64;
+local context = 128;
 local lr = 0.0005;  // 5 x 10 ^ -4
-local batch_size = 32;
+local batch_size = 128;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
@@ -12,14 +12,13 @@ local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 4;
-local embedding_dim = 128;
-local hidden_dim = 196;
+local num_layers = 6;
+local embedding_dim = 196;
+local hidden_dim = 256;
 local num_attention_heads = 4;
-local norm = null;
 local activation = 'relu';
 
-local cuda_devices = [0];
+local cuda_devices = [0, 1, 2, 3];
 
 local reader = {
   type: 'wikitext-reader',
@@ -37,7 +36,7 @@ local reader = {
   },
   exclusive: true,
   split_on: 'sentence',
-  min_context_len: 8,
+  min_context_len: 64,
   max_instances: max_instances,
   manual_multiprocess_sharding: true,
   manual_distributed_sharding: true,
@@ -71,7 +70,6 @@ local reader = {
       num_layers: num_layers,
       activation: activation,
       dropout: dropout,
-      norm: norm,
     },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',

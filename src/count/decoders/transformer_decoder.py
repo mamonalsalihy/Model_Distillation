@@ -50,7 +50,7 @@ class TransformerDecoder(nn.Module):
             Default is "relu"
         """
         super().__init__(**kwargs)
-        self.norm = norm
+        self.norm = norm or LayerNorm(input_dim)
         decoder_layers = []
         for i in range(num_layers):
             layer = TransformerDecoderLayer(
@@ -73,8 +73,6 @@ class TransformerDecoder(nn.Module):
         for layer in self.decoder_layers:
             target = layer(target, attn_mask, key_padding_mask)
 
-        if self.norm is not None:
-            target = self.norm(target)
         return target
 
 
@@ -149,7 +147,9 @@ class TransformerDecoderLayer(nn.Module):
         )
         # not sure why we add instead of just use attn_target but that's how they do it in pytorch
         target = target + attn_target
-        return self.feedforward(target.permute(1, 0, 2))
+        target = self.norm(target)
+        target = self.feedforward(target.permute(1, 0, 2))
+        return self.norm(target)
 
 
 if __name__ == "__main__":

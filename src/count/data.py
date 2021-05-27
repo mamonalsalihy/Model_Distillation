@@ -93,16 +93,12 @@ class WikiTextReader(DatasetReader):
         # make sure we actually have a context
         assert self._min_context_len >= 1, f"min_context_len must be >= 1"
 
-    def _single_process_read(self, file_path: str) -> Iterable[Instance]:
+    def _read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
         with open(file_path, "r", encoding="utf8") as f:
-            for line in f:
+            for line in self.shard_iterable(f):
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
-
-    def _read(self, file_path: str) -> Iterable[Instance]:
-        shards = self._single_process_read(file_path)
-        yield from self.shard_iterable(shards)
 
     def generate_instances(self, text: str) -> Iterable[Instance]:
         """Generates instances of a certain context size given the available text
@@ -121,8 +117,8 @@ class WikiTextReader(DatasetReader):
         # (n+1)th token as a target.
         if self._split_on.lower() == "sentence":
             sentences = self._sentence_splitter.split_sentences(text)
-            for sent in sentences:
-                tokens = self._tokenizer.tokenize(sent)
+            tokenized_sents = self._tokenizer.batch_tokenize(sentences)
+            for tokens in tokenized_sents:
                 # if we want exclusive instances, make sure the step size is self._context
                 # otherwise, just use the normal 1
                 step_size = self._context if self._exclusive else 1
@@ -136,11 +132,14 @@ class WikiTextReader(DatasetReader):
             # list of tokens in the paragraph
             tokens = []
             sentences = self._sentence_splitter.split_sentences(text)
-            tokens = self._tokenizer.tokenize_multiple(sentences, add_special_tokens=True)
+            tokens = self._tokenizer.tokenize_paragraph(sentences, add_special_tokens=True)
             step_size = self._context if self._exclusive else 1
-            for start in range(0, len(tokens) - self._context, step_size):
-                end = start + self._context + 1
-                yield self.text_to_instance(tokens[start:end])
+            for start in range(0, len(tokens), step_size):
+                instance = tokens[start : start + self._context + 1]
+                # check whether the context length meets the minimum requirements
+                # don't forget to add 1 since the last token is not part of the context
+                if len(instance) >= self._min_context_len + 1:
+                    yield self.text_to_instance(instance)
 
         else:
             raise NotImplementedError(
@@ -185,7 +184,7 @@ if __name__ == "__main__":
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         exclusive=True,
         split_on="sentence",
-        max_instances=10,
+        max_instances=100_000,
         min_context_len=1,
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,

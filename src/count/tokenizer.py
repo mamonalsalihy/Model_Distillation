@@ -100,10 +100,55 @@ class WikiTextTokenizer(Tokenizer):
 
         return tokens
 
-    def tokenize_multiple(self, texts: List[str], add_special_tokens: bool = True) -> List[Token]:
-        tokenized_sents = [
-            self.tokenize(text=t, add_special_tokens=add_special_tokens) for t in texts
-        ]
+    @overrides
+    def batch_tokenize(
+        self, texts: List[str], add_special_tokens: bool = True
+    ) -> List[List[Token]]:
+        encoded_sequences = self.tokenizer.encode_batch(
+            input=texts,
+            is_pretokenized=False,
+            add_special_tokens=add_special_tokens,
+        )
+        all_tokens = []
+        for encoded_tokens in encoded_sequences:
+            # token_ids contains a final list with ids for both regular and special tokens
+            token_ids, token_type_ids, special_tokens_mask, token_offsets = (
+                encoded_tokens.ids,
+                encoded_tokens.type_ids,
+                encoded_tokens.special_tokens_mask,
+                encoded_tokens.offsets,
+            )
+
+            tokens = []
+            for token_id, token_type_id, special_token_mask, offsets in zip(
+                token_ids, token_type_ids, special_tokens_mask, token_offsets
+            ):
+                if not self._add_special_tokens and special_token_mask == 1:
+                    continue
+
+                if offsets is None or offsets[0] >= offsets[1]:
+                    start = None
+                    end = None
+                else:
+                    start, end = offsets
+
+                tokens.append(
+                    Token(
+                        text=self.tokenizer.id_to_token(token_id),
+                        text_id=token_id,
+                        type_id=token_type_id,
+                        idx=start,
+                        idx_end=end,
+                    )
+                )
+
+            all_tokens.append(tokens)
+
+        return all_tokens
+
+    def tokenize_paragraph(self, texts: List[str], add_special_tokens: bool = True) -> List[Token]:
+
+        tokenized_sents = self.batch_tokenize(texts=texts, add_special_tokens=add_special_tokens)
         all_tokens = [token for sent in tokenized_sents for token in sent]
         # if we aren't adding special tokens, we're already done; just return the joined lists
         if not add_special_tokens:

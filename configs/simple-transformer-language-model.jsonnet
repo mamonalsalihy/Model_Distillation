@@ -3,22 +3,23 @@ local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 64;
-local max_instances = 5000;
-local lr = 0.001;
+local lr = 0.0005;  // 5 x 10 ^ -4
 local batch_size = 32;
+local max_instances = null;
+local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
-local dropout = 0.2;
+local dropout = 0.3;
 
 // Model config
 local num_layers = 4;
-local embedding_dim = 64;
-local hidden_dim = 128;
+local embedding_dim = 128;
+local hidden_dim = 196;
 local num_attention_heads = 4;
 local norm = null;
 local activation = 'relu';
 
-local cuda_device = 0;
+local cuda_devices = [0];
 
 local reader = {
   type: 'wikitext-reader',
@@ -80,21 +81,16 @@ local reader = {
     type: 'multiprocess',
     batch_size: batch_size,
     shuffle: true,
-    num_workers: 8,
+    max_instances_in_memory: max_instances_memory,
+    num_workers: 1,
     start_method: 'fork',
   },
   validation_data_loader: {
     type: 'multiprocess',
     batch_size: batch_size,
     shuffle: false,
-    num_workers: 8,
-    start_method: 'fork',
-  },
-  test_data_loader: {
-    type: 'multiprocess',
-    batch_size: batch_size,
-    shuffle: false,
-    num_workers: 8,
+    max_instances_in_memory: max_instances_memory,
+    num_workers: 1,
     start_method: 'fork',
   },
   trainer: {
@@ -106,6 +102,9 @@ local reader = {
       type: 'adam',
       lr: lr,
     },
-    cuda_device: cuda_device,
+    cuda_device: 0,
   },
+  //distributed: {
+  //  cuda_devices: cuda_devices,
+  //},
 }

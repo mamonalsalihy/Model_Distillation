@@ -112,10 +112,7 @@ if __name__ == "__main__":
         vocab=vocab,
         embedder=embedder,
         decoder=decoder.to(config.DEVICE_1),
-        num_hidden_layers=config.TRANSFORMER_LAYERS,
         hidden_size=config.EMBEDDING_DIMENSION,
-        intermediate_size=config.HIDDEN_DIMENSION,
-        num_attention_heads=config.NUM_ATTENTION_HEADS,
     )
 
     trainer = GradientDescentTrainer(
@@ -130,8 +127,8 @@ if __name__ == "__main__":
     )
 
     # note, count_parmeters now returns a string for easier readability
-    print("parameters:", model.count_parameters())
-    print(get_model_size(model, saved=False))
+    # print("parameters:", model.count_parameters())
+    # print(get_model_size(model, saved=False))
 
     # Run training
     # ============

@@ -24,6 +24,7 @@ from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.attention import Attention
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.modules.transformer import TransformerLayer, TransformerStack
+from allennlp.modules.transformer.positional_encoding import SinusoidalPositionalEncoding
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # Inference
@@ -53,6 +54,7 @@ class SimpleTransformerLanguageModel(Model):
         super().__init__(vocab)
 
         self.embedder = embedder
+        self.pos_emb = SinusoidalPositionalEncoding()
         self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word
@@ -82,8 +84,12 @@ class SimpleTransformerLanguageModel(Model):
         # ================
         # shape (batch_size, timesteps, embedding_size)
         embeddings = self.embedder(tokens)
+
+        # add the positional information to the emeddings
+        emb_pos = self.pos_emb(embeddings)
+
         # get the first part of the window
-        source_embeddings = embeddings[:, :-1, :]
+        source_embeddings = emb_pos[:, :-1, :]
 
         # Construct attention masks
         # =========================

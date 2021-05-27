@@ -3,8 +3,8 @@ local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 64;
-local lr = 0.0005;  // 5 x 10 ^ -4
-local batch_size = 1;
+local lr = 0.01;  // 5 x 10 ^ -4
+local batch_size = 16;
 local max_instances = 16;
 local max_instances_memory = null;
 local epochs = 50000;
@@ -12,9 +12,9 @@ local patience = 50000;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 4;
-local embedding_dim = 128;
-local hidden_dim = 196;
+local num_layers = 1;
+local embedding_dim = 32;
+local hidden_dim = 64;
 local num_attention_heads = 4;
 local norm = null;
 local activation = 'relu';

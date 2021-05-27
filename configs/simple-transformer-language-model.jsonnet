@@ -3,8 +3,8 @@ local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 128;
-local lr = 0.0005;  // 5 x 10 ^ -4
-local batch_size = 128;
+local lr = 0.00075;  // 5 x 10 ^ -4
+local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
@@ -36,7 +36,7 @@ local reader = {
   },
   exclusive: true,
   split_on: 'sentence',
-  min_context_len: 64,
+  min_context_len: 3,
   max_instances: max_instances,
   manual_multiprocess_sharding: true,
   manual_distributed_sharding: true,
@@ -80,7 +80,7 @@ local reader = {
     batch_size: batch_size,
     shuffle: true,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 1,
+    num_workers: 4,
     start_method: 'fork',
   },
   validation_data_loader: {
@@ -88,7 +88,7 @@ local reader = {
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 1,
+    num_workers: 4,
     start_method: 'fork',
   },
   trainer: {
@@ -99,10 +99,10 @@ local reader = {
     optimizer: {
       type: 'adam',
       lr: lr,
+      weight_decay: 0.1,
     },
-    cuda_device: 0,
   },
-  //distributed: {
-  //  cuda_devices: cuda_devices,
-  //},
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

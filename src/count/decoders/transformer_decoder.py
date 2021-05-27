@@ -50,7 +50,6 @@ class TransformerDecoder(nn.Module):
             Default is "relu"
         """
         super().__init__(**kwargs)
-        self.norm = norm or LayerNorm(input_dim)
         decoder_layers = []
         for i in range(num_layers):
             layer = TransformerDecoderLayer(
@@ -59,6 +58,7 @@ class TransformerDecoder(nn.Module):
                 hidden_dim=hidden_dim,
                 dropout=dropout,
                 activation=activation,
+                norm=norm,
             )
             decoder_layers.append(layer)
 
@@ -84,6 +84,7 @@ class TransformerDecoderLayer(nn.Module):
         hidden_dim: int,
         dropout: float,
         activation: Optional[str] = "relu",
+        norm: Optional[LayerNorm] = None,
         **kwargs,
     ) -> None:
         """Simple Transformer-Decoder block (no encoder at all).
@@ -113,6 +114,7 @@ class TransformerDecoderLayer(nn.Module):
             activations=Activation.by_name(activation)(),
             dropout=dropout,
         )
+        self.norm = norm or LayerNorm(input_dim)
 
     def forward(
         self,

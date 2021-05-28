@@ -1,4 +1,5 @@
 # STL
+import logging
 import sys
 from pathlib import Path
 from typing import Dict
@@ -41,6 +42,8 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.base_decoder import Decoder
 
+logger = logging.getLogger(__name__)
+
 
 @Model.register("simple-transformer-language-model", exist_ok=True)
 class SimpleTransformerLanguageModel(Model):
@@ -67,6 +70,7 @@ class SimpleTransformerLanguageModel(Model):
 
         self.metric = Perplexity()
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
+        logger.info("Number of parameters: %s", self.count_parameters())
 
     def forward(
         self,

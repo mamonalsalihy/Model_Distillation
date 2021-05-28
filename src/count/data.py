@@ -7,6 +7,7 @@ import sys
 from itertools import islice
 from pathlib import Path
 from typing import Dict, Iterable
+from tqdm import tqdm
 
 # AllenNLP
 from allennlp.data import Vocabulary
@@ -179,16 +180,29 @@ if __name__ == "__main__":
         add_special_tokens=True,
     )
     reader = WikiTextReader(
-        context=30,
+        context=256,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         exclusive=True,
         split_on="sentence",
-        max_instances=100_000,
+        max_instances=50_000,
         min_context_len=1,
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,
     )
+    # loader = MultiProcessDataLoader(
+    #     reader=reader,
+    #     data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"),
+    #     batch_size=1,
+    #     shuffle=True,
+    #     max_instances_in_memory=None,
+    #     num_workers=4,
+    #     # start_method="spawn",
+    # )
+    # loader.index_with(vocab)
     dataset = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
-    for i in dataset:
-        print(i.fields["tokens"])
+
+    lens = [len(i.fields["tokens"]) for i in tqdm(dataset)]
+
+    print(f"Max: {max(lens)}")
+    print(f"Avg: {sum(lens) / len(lens)}")

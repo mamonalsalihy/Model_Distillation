@@ -35,7 +35,7 @@ from allennlp.predictors.predictor import Predictor
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
 from src.count import config

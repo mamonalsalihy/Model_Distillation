@@ -17,7 +17,7 @@ Installation
 ------------
 1. Clone the repository
 ```bash
-git clone https://github.com/mamonalsalihy/Model-Distillation
+git clone https://github.com/mamonalsalihy/Model_Distillation
 ```
 2. Start up a virtual environment (optional)
 ```bash

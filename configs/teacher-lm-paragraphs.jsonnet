@@ -1,20 +1,20 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 256;
-local lr = 0.00025;  // 2.5 x 10 ^ -4
+local lr = 0.00025;  // 1 x 10 ^ -4
 local decay = 0.01;
-local batch_size = 64;
-local max_instances = 64;
+local batch_size = 32;
+local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 10;
+local num_layers = 8;
 local embedding_dim = 512;
 local hidden_dim = 1536;
 local num_attention_heads = 8;
@@ -37,7 +37,7 @@ local reader = {
     },
   },
   exclusive: true,
-  split_on: 'sentence',
+  split_on: 'paragraph',
   min_context_len: 2,
   max_instances: max_instances,
   manual_multiprocess_sharding: true,

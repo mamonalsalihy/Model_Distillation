@@ -54,9 +54,9 @@ Training
 Choose a configuration script in `configs/`. For example, let's use the hypothetical `example-config.jsonnet`
 
 ```bash
-allennlp configs/example-config.jsonnet \     # specify which config file to use
-         -s experiments/example-experiment \  # specify a directory for the experiment (saved models, logs, metadata, etc.)
-         --include-package src.count          # specify any packages to include code from
+allennlp train configs/example-config.jsonnet \     # specify which config file to use
+               -s experiments/example-experiment \  # specify a directory for the experiment (saved models, logs, metadata, etc.)
+               --include-package src.count          # specify any packages to include code from
 ```
 
 Examples

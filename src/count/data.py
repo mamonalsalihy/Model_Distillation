@@ -6,7 +6,7 @@ import os
 import sys
 from itertools import islice
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List
 from tqdm import tqdm
 
 # AllenNLP
@@ -46,6 +46,8 @@ class WikiTextReader(DatasetReader):
 
     Parameters
     ----------
+    context : `int`
+        Maximum length of the context to use in prediction.
     tokenizer : `Tokenizer` (default=`WhitespaceTokenizer()`)
         We use this `Tokenizer` for the text.  See :class:`Tokenizer`.
     token_indexers : `Dict[str, TokenIndexer]`, optional (default=`{"tokens": SingleIdTokenIndexer()}`)
@@ -57,7 +59,9 @@ class WikiTextReader(DatasetReader):
     split_on : `str`, optional (default = `"sentence"`)
         Determines the text to provide to the model.
         - `sentence` will split on sentences and provide one at a time
-        - `paragraph` will provide sentences up until a newline.
+        - `paragraph` will provide a paragraph at a time.
+        - `paragraph-with-seps` will provide a paragraph with each sentence having a `[SEP]` token
+          in between
     exclusive : `bool`, optional (default = `True`)
         If True, each generated instance will have no overlap with the previous. If False, each
         generated instance will have an overlap of all but 1 (i.e., shifted forward one token).
@@ -65,6 +69,9 @@ class WikiTextReader(DatasetReader):
         Determines the minimum number of tokens an instance must have in its context (not including
         the next token added as a target). If `None`, defaults to `context`. Otherwise, must be at
         least 1.
+    eval : `bool`, optional (default = `False`)
+        If true, full context will be provided at each instance. That is, for each token in a
+        sequence, the previous `context` tokens will be sent through.
     """
 
     def __init__(
@@ -75,6 +82,7 @@ class WikiTextReader(DatasetReader):
         split_on: str = "sentence",
         exclusive: bool = True,
         min_context_len: int = None,
+        eval: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -84,6 +92,8 @@ class WikiTextReader(DatasetReader):
         self._token_indexers = token_indexers or {
             "tokens": SingleIdTokenIndexer(namespace="tokens")
         }
+
+        # context stuff
         self._split_on = split_on
         self._context = context
         self._exclusive = exclusive
@@ -94,12 +104,27 @@ class WikiTextReader(DatasetReader):
         # make sure we actually have a context
         assert self._min_context_len >= 1, f"min_context_len must be >= 1"
 
+        # check for eval mode
+        self._eval = eval
+        if self._eval:
+            assert not self._exclusive, "Exclusive must be False for eval mode"
+
     def _read(self, file_path: str) -> Iterable[Instance]:
         logger.info(f"Loading data from {file_path}")
         with open(file_path, "r", encoding="utf8") as f:
             for line in self.shard_iterable(f):
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
+
+    def _batchify_tokens(self, tokens: List[Token]) -> Iterable[Instance]:
+        # List of tokens -->
+        step_size = self._context if self._exclusive else 1
+        first_end_index = min(step_size, len(tokens) - 1)
+        for end in range(first_end_index, len(tokens), step_size):
+            start = max(0, end - self._context)
+            instance = tokens[start : end + 1]
+            if len(instance) >= self._min_context_len + 1:
+                yield self.text_to_instance(instance)
 
     def generate_instances(self, text: str) -> Iterable[Instance]:
         """Generates instances of a certain context size given the available text
@@ -114,39 +139,30 @@ class WikiTextReader(DatasetReader):
         Iterable[Instance] :
             Generates `self._context` sized instances, where the `target` field is the next word
         """
-        # tokenize the text, and slide a `self._context` sized window over the tokens , using the
-        # (n+1)th token as a target.
+
+        # 1. Optionally split text into sentences
+        # 2. Tokenize & add cls/sep
+        # 3. Yield instances of size `step_size` (1 if we are doing eval, context_len otherwise)
+
+        step_size = self._context if self._exclusive else 1
+
         if self._split_on.lower() == "sentence":
+            # Split on sentences with CLS and SEP at beg/end
             sentences = self._sentence_splitter.split_sentences(text)
             tokenized_sents = self._tokenizer.batch_tokenize(sentences)
             for tokens in tokenized_sents:
-                # if we want exclusive instances, make sure the step size is self._context
-                # otherwise, just use the normal 1
-                step_size = self._context if self._exclusive else 1
-                for start in range(0, len(tokens), step_size):
-                    instance = tokens[start : start + self._context + 1]
-                    # check whether the context length meets the minimum requirements
-                    # don't forget to add 1 since the last token is not part of the context
-                    if len(instance) >= self._min_context_len + 1:
-                        yield self.text_to_instance(instance)
+                yield from self._batchify_tokens(tokens)
         elif self._split_on.lower() == "paragraph":
-            # list of tokens in the paragraph
-            tokens = []
+            # Split on paragraphs with CLS and SEP at beg/end
+            tokens = self._tokenizer.tokenize(text)
+            yield from self._batchify_tokens(tokens)
+        elif self._split_on.lower() == "paragraph-with-seps":
+            # Split on paragraphs with SEP tokens between sentences
             sentences = self._sentence_splitter.split_sentences(text)
             tokens = self._tokenizer.tokenize_paragraph(sentences, add_special_tokens=True)
-            step_size = self._context if self._exclusive else 1
-            for start in range(0, len(tokens), step_size):
-                instance = tokens[start : start + self._context + 1]
-                # check whether the context length meets the minimum requirements
-                # don't forget to add 1 since the last token is not part of the context
-                if len(instance) >= self._min_context_len + 1:
-                    yield self.text_to_instance(instance)
-
+            yield from self._batchify_tokens(tokens)
         else:
-            raise NotImplementedError(
-                f"Splitting method {self._split_on} not implemented."
-                " Please choose one of 'sentence' or 'paragraph'."
-            )
+            raise NotImplementedError(f"Splitting method {self._split_on} not implemented.")
 
     def text_to_instance(
         self,
@@ -183,26 +199,16 @@ if __name__ == "__main__":
         context=256,
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
-        exclusive=True,
-        split_on="sentence",
-        max_instances=50_000,
+        exclusive=False,
+        split_on="paragraph-with-seps",
+        eval=True,
+        max_instances=256,
         min_context_len=1,
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,
     )
-    # loader = MultiProcessDataLoader(
-    #     reader=reader,
-    #     data_path=os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"),
-    #     batch_size=1,
-    #     shuffle=True,
-    #     max_instances_in_memory=None,
-    #     num_workers=4,
-    #     # start_method="spawn",
-    # )
-    # loader.index_with(vocab)
     dataset = reader.read(os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw"))
 
-    lens = [len(i.fields["tokens"]) for i in tqdm(dataset)]
-
-    print(f"Max: {max(lens)}")
-    print(f"Avg: {sum(lens) / len(lens)}")
+    print("Ready...")
+    for i in dataset:
+        print(i.fields["tokens"])

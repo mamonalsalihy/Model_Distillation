@@ -35,7 +35,7 @@ from allennlp.predictors.predictor import Predictor
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
 from src.count import config
@@ -45,13 +45,14 @@ from src.count.decoders.base_decoder import Decoder
 logger = logging.getLogger(__name__)
 
 
-@Model.register("simple-transformer-language-model", exist_ok=True)
-class SimpleTransformerLanguageModel(Model):
+@Model.register("student", exist_ok=True)
+class StudentModel(Model):
     def __init__(
         self,
         vocab: Vocabulary,
         embedder: TextFieldEmbedder,
         decoder: Decoder,
+        teacher: Model,
         hidden_size: int,
     ) -> None:
         super().__init__(vocab)
@@ -69,12 +70,17 @@ class SimpleTransformerLanguageModel(Model):
         self.dif_tokenizers_ratio = config.DIF_TOKENIZERS_RATIO
 
         self.metric = Perplexity()
-        self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
+        self.kl_div = nn.KLDivLoss(reduction="mean")
+        self.cross_entropy = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
+
+        self.teacher = teacher
+        self.teacher.eval()  # we don't want to train the teacher
         logger.info("Number of parameters: %s", self.count_parameters())
 
     def forward(
         self,
         tokens: TextFieldTensors,
+        eval : bool = False,
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
@@ -82,7 +88,7 @@ class SimpleTransformerLanguageModel(Model):
         # Get source and target
         # =====================
         source = token_ids[:, :-1]
-        target = token_ids[:, 1:]
+        hard_targets = token_ids[:, 1:]
 
         # Embed the tokens
         # ================
@@ -110,23 +116,27 @@ class SimpleTransformerLanguageModel(Model):
         logits = self.linear(decoded)  # shape (batch_size, seq_len, vocab_size)
         probs = torch.nn.functional.softmax(logits, dim=2)
 
-        # reshape them because they aren't contiguous in memory
-        # unsure why this issue exists in AllenNLP
-        # https://discuss.pytorch.org/t/contigious-vs-non-contigious-tensor/30107
-        preds = logits.reshape(-1, self.vocab_size)
-        target = target.reshape(-1)
+        # Calculate the teacher's logits
+        # ==============================
+        if not eval:
+            with torch.no_grad():
+                teacher_output = self.teacher(tokens)
+                soft_labels = teacher_output["logits"]
 
-        # Calculate loss and normalize
-        # ============================
-        # temp = torch.nn.functional.cross_entropy(
-        #     preds, target, ignore_index=self.PAD_IDX, reduction="sum"
-        # )
-        # loss = temp / self.normalizer
-        # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
+        # Calculate loss & Perplexity
+        # ===========================
 
-        # just for testing
-        loss = self.loss(preds, target)
-        self.metric(loss)
+        # Perplexity
+        cross_entropy = self.cross_entropy(
+            logits.reshape(-1, self.vocab_size), hard_targets.reshape(-1)
+        )
+        self.metric(cross_entropy)
+
+        # Loss - If we're training, use kl_div. If we're evaluating, use CE
+        if not eval:
+            loss = self.kl_div(probs, soft_labels)
+        else:
+            loss = cross_entropy
 
         return {"logits": logits, "loss": loss, "probs": probs}
 

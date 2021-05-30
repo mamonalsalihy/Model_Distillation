@@ -80,6 +80,7 @@ class StudentModel(Model):
     def forward(
         self,
         tokens: TextFieldTensors,
+        eval : bool = False,
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
@@ -117,20 +118,25 @@ class StudentModel(Model):
 
         # Calculate the teacher's logits
         # ==============================
-        with torch.no_grad():
-            teacher_output = self.teacher(tokens)
-            soft_labels = teacher_output["logits"]
+        if not eval:
+            with torch.no_grad():
+                teacher_output = self.teacher(tokens)
+                soft_labels = teacher_output["logits"]
 
         # Calculate loss & Perplexity
         # ===========================
-        # Loss
-        loss = self.kl_div(probs, soft_labels)
 
         # Perplexity
         cross_entropy = self.cross_entropy(
             logits.reshape(-1, self.vocab_size), hard_targets.reshape(-1)
         )
         self.metric(cross_entropy)
+
+        # Loss - If we're training, use kl_div. If we're evaluating, use CE
+        if not eval:
+            loss = self.kl_div(probs, soft_labels)
+        else:
+            loss = cross_entropy
 
         return {"logits": logits, "loss": loss, "probs": probs}
 

@@ -17,7 +17,7 @@ Installation
 ------------
 1. Clone the repository
 ```bash
-git clone https://github.com/mamonalsalihy/Model-Distillation
+git clone https://github.com/mamonalsalihy/Model_Distillation
 ```
 2. Start up a virtual environment (optional)
 ```bash
@@ -51,7 +51,13 @@ python ./scripts/build_vocabulary.py
 
 Training
 --------
-We'll update this section with training scripts as we continue.
+Choose a configuration script in `configs/`. For example, let's use the hypothetical `example-config.jsonnet`
+
+```bash
+allennlp train configs/example-config.jsonnet \     # specify which config file to use
+               -s experiments/example-experiment \  # specify a directory for the experiment (saved models, logs, metadata, etc.)
+               --include-package src.count          # specify any packages to include code from
+```
 
 Examples
 --------

@@ -4,20 +4,20 @@ local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 256;
-local lr = 0.00025;  // 1 x 10 ^ -4
+local lr = 0.0001;  // 1 x 10 ^ -4
 local decay = 0.01;
 local batch_size = 4;
-local max_instances = 128;
+local max_instances = 16;
 local max_instances_memory = null;
-local epochs = 50;
-local patience = 10;
+local epochs = 500;
+local patience = 500;
 local dropout = 0.3;
 
 // Model config
 local num_layers = 8;
-local embedding_dim = 512;
-local hidden_dim = 1536;
-local num_attention_heads = 8;
+local embedding_dim = 384;
+local hidden_dim = 1024;
+local num_attention_heads = 4;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
@@ -37,6 +37,7 @@ local train_reader = {
     },
   },
   exclusive: true,
+  eval: false,
   split_on: 'paragraph',
   min_context_len: 2,
   max_instances: max_instances,
@@ -96,10 +97,14 @@ local eval_reader = {
       activation: activation,
       dropout: dropout,
     },
+    initializer: {
+      regexes: [
+        ['.*weight', { type: 'xavier_normal' }],
+      ],
+    },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
-  validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
-  test_data_path: root + 'data/wikitext-103-raw/wiki.test.raw',
+  validation_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   data_loader: {
     type: 'multiprocess',
     batch_size: batch_size,

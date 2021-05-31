@@ -27,6 +27,7 @@ from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.modules.transformer import TransformerLayer, TransformerStack
 from allennlp.modules.transformer.positional_encoding import SinusoidalPositionalEncoding
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+from allennlp.nn.initializers import InitializerApplicator
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -53,6 +54,7 @@ class SimpleTransformerLanguageModel(Model):
         embedder: TextFieldEmbedder,
         decoder: Decoder,
         hidden_size: int,
+        initializer: InitializerApplicator,
     ) -> None:
         super().__init__(vocab)
 
@@ -71,6 +73,9 @@ class SimpleTransformerLanguageModel(Model):
         self.metric = Perplexity()
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
         logger.info("Number of parameters: %s", self.count_parameters())
+
+        # Initialize weights
+        initializer(self)
 
     def forward(
         self,
@@ -103,6 +108,11 @@ class SimpleTransformerLanguageModel(Model):
         seq_len = source.shape[1]
         mask = torch.tril(torch.ones(seq_len, seq_len))
         mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0).cuda()
+        # `mask` should look like:
+        # 0 - - -
+        # 0 0 - -
+        # 0 0 0 -
+        # 0 0 0 0
 
         # Run through the decoder
         # =======================

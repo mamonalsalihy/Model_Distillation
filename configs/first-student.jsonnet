@@ -7,7 +7,7 @@ local context = 256;
 local lr = 1e-4;  // 1 x 10 ^ -4
 local decay = 0.01;
 local batch_size = 64;
-local max_instances = 2048;
+local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
@@ -99,6 +99,11 @@ local eval_reader = {
     teacher: {
         type: from_archive,
         archive_file: root + teacher_model,
+    },
+    initializer: {
+      regexes: [
+        ['.*weight', { type: 'xavier_normal' }],
+      ],
     },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',

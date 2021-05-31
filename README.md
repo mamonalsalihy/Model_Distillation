@@ -4,6 +4,7 @@ The CoUnT: Compressed Unidirectional Transformers
 - [Overview](#package-overview)
 - [Installation](#installation)
 - [Training](#training)
+- [Hyperparameter optimization](#Hyperparameter optimization)
 - [Examples](#Examples)
 - [Documentation](#documentation)
 - [Team](#team)

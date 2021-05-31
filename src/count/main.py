@@ -38,6 +38,7 @@ from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 
+
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":

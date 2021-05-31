@@ -4,6 +4,7 @@ The CoUnT: Compressed Unidirectional Transformers
 - [Overview](#package-overview)
 - [Installation](#installation)
 - [Training](#training)
+- [Hyperparameter optimization](#hyperparameter-optimization)
 - [Examples](#Examples)
 - [Documentation](#documentation)
 - [Team](#team)
@@ -58,6 +59,19 @@ allennlp train configs/example-config.jsonnet \     # specify which config file 
                -s experiments/example-experiment \  # specify a directory for the experiment (saved models, logs, metadata, etc.)
                --include-package src.count          # specify any packages to include code from
 ```
+
+Hyperparameter optimization
+---------------------------
+Currently under construction
+Example command:
+```bash
+allennlp tune configs/simple-transformer-language-model.jsonnet \ # Specifies config file for language model
+              configs/hparams.json \ # Hyperparameters to optimize
+              --serialization-dir experiments/hpo \ # specify a directory for the experiment (saved models, logs, metadata, etc.)
+              --study-name sample-test \ # Name experiement trial 
+              --include-package src.count # specify any packages to include code from
+```
+
 
 Examples
 --------

@@ -59,6 +59,11 @@ allennlp train configs/example-config.jsonnet \     # specify which config file 
                --include-package src.count          # specify any packages to include code from
 ```
 
+Hyperparameter optimization
+---------------------------
+Currently under construction
+
+
 Examples
 --------
 We'll update this section with examples once we have a working model.

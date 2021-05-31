@@ -124,10 +124,15 @@ class SimpleTransformerLanguageModel(Model):
         # loss = temp / self.normalizer
         # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
 
-        # just for testing
+        # If we're evaluating, we only care about the last prediction
+        if not self.training:
+            logits = logits[:, -1, :]
+            probs = probs[:, -1, :]
+            preds = logits.reshape(-1, self.vocab_size)
+            target = target[-1:].reshape(-1)
+
         loss = self.loss(preds, target)
         self.metric(loss)
-
         return {"logits": logits, "loss": loss, "probs": probs}
 
     def make_output_human_readable(

@@ -110,12 +110,6 @@ class SimpleTransformerLanguageModel(Model):
         logits = self.linear(decoded)  # shape (batch_size, seq_len, vocab_size)
         probs = torch.nn.functional.softmax(logits, dim=2)
 
-        # reshape them because they aren't contiguous in memory
-        # unsure why this issue exists in AllenNLP
-        # https://discuss.pytorch.org/t/contigious-vs-non-contigious-tensor/30107
-        preds = logits.reshape(-1, self.vocab_size)
-        target = target.reshape(-1)
-
         # Calculate loss and normalize
         # ============================
         # temp = torch.nn.functional.cross_entropy(
@@ -124,12 +118,14 @@ class SimpleTransformerLanguageModel(Model):
         # loss = temp / self.normalizer
         # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
 
-        # If we're evaluating, we only care about the last prediction
-        if not self.training:
+        if self.training:
+            preds = logits.reshape(-1, self.vocab_size)
+            target = target.reshape(-1)
+        else:  # If we're evaluating, we only care about the last prediction
             logits = logits[:, -1, :]
             probs = probs[:, -1, :]
             preds = logits.reshape(-1, self.vocab_size)
-            target = target[-1:].reshape(-1)
+            target = target[:, -1].reshape(-1)
 
         loss = self.loss(preds, target)
         self.metric(loss)

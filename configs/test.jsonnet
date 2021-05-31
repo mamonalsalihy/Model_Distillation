@@ -1,27 +1,28 @@
 // Paths
+//local root = '/data/users/nilay/the-count/';
 local root = '/home/offendo/src/the-count/';
 
 // Training
-local context = 64;
-local lr = 0.01;  // 5 x 10 ^ -4
-local batch_size = 16;
-local max_instances = 16;
+local context = 256;
+local lr = 0.00025;  // 1 x 10 ^ -4
+local decay = 0.01;
+local batch_size = 4;
+local max_instances = 128;
 local max_instances_memory = null;
-local epochs = 50000;
-local patience = 50000;
+local epochs = 50;
+local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 1;
-local embedding_dim = 32;
-local hidden_dim = 64;
-local num_attention_heads = 4;
-local norm = null;
+local num_layers = 8;
+local embedding_dim = 512;
+local hidden_dim = 1536;
+local num_attention_heads = 8;
 local activation = 'relu';
 
-local cuda_devices = [0];
+local cuda_devices = [1, 2];
 
-local reader = {
+local train_reader = {
   type: 'wikitext-reader',
   context: context,
   tokenizer: {
@@ -36,15 +37,38 @@ local reader = {
     },
   },
   exclusive: true,
-  split_on: 'sentence',
-  min_context_len: 8,
+  split_on: 'paragraph',
+  min_context_len: 2,
+  max_instances: max_instances,
+  manual_multiprocess_sharding: true,
+  manual_distributed_sharding: true,
+};
+
+local eval_reader = {
+  type: 'wikitext-reader',
+  context: context,
+  tokenizer: {
+    type: 'wikitext-tokenizer',
+    tokenizer_path: root + 'unigram-tokenizer.json',
+    add_special_tokens: true,
+  },
+  token_indexers: {
+    tokens: {
+      type: 'single_id',
+      namespace: 'tokens',
+    },
+  },
+  exclusive: false,
+  eval: true,
+  split_on: 'paragraph',
+  min_context_len: 2,
   max_instances: max_instances,
   manual_multiprocess_sharding: true,
   manual_distributed_sharding: true,
 };
 
 {
-  dataset_reader: reader,
+  dataset_reader: train_reader,
   vocabulary: {
     type: 'from_files',
     directory: root + 'data/vocab/',
@@ -71,26 +95,26 @@ local reader = {
       num_layers: num_layers,
       activation: activation,
       dropout: dropout,
-      norm: norm,
     },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
-  validation_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
+  validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
   test_data_path: root + 'data/wikitext-103-raw/wiki.test.raw',
   data_loader: {
     type: 'multiprocess',
     batch_size: batch_size,
     shuffle: true,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 1,
+    num_workers: 4,
     start_method: 'fork',
   },
   validation_data_loader: {
     type: 'multiprocess',
+    reader: eval_reader,
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 1,
+    num_workers: 4,
     start_method: 'fork',
   },
   trainer: {
@@ -99,12 +123,13 @@ local reader = {
     num_epochs: epochs,
     patience: patience,
     optimizer: {
-      type: 'adam',
+      type: 'adamw',
       lr: lr,
+      weight_decay: decay,
     },
     cuda_device: 0,
   },
-  //distributed: {
-  //  cuda_devices: cuda_devices,
-  //},
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

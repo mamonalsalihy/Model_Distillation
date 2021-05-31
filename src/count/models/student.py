@@ -45,7 +45,7 @@ from src.count.decoders.base_decoder import Decoder
 logger = logging.getLogger(__name__)
 
 
-@Model.register("student", exist_ok=True)
+@Model.register("student-language-model", exist_ok=True)
 class StudentModel(Model):
     def __init__(
         self,

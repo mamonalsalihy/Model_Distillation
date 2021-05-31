@@ -56,7 +56,7 @@ class StudentModel(Model):
         decoder: Decoder,
         teacher: Model,
         hidden_size: int,
-        initializer: InitializerApplicator,
+        initializer: InitializerApplicator = None,
     ) -> None:
         super().__init__(vocab)
 
@@ -81,7 +81,8 @@ class StudentModel(Model):
         logger.info("Number of parameters: %s", self.count_parameters())
 
         # Initialize weights
-        initializer(self)
+        if initializer is not None:
+            initializer(self)
 
     def forward(
         self,

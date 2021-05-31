@@ -54,7 +54,7 @@ class SimpleTransformerLanguageModel(Model):
         embedder: TextFieldEmbedder,
         decoder: Decoder,
         hidden_size: int,
-        initializer: InitializerApplicator,
+        initializer: InitializerApplicator = None,
     ) -> None:
         super().__init__(vocab)
 
@@ -75,7 +75,8 @@ class SimpleTransformerLanguageModel(Model):
         logger.info("Number of parameters: %s", self.count_parameters())
 
         # Initialize weights
-        initializer(self)
+        if initializer is not None:
+            initializer(self)
 
     def forward(
         self,

@@ -6,8 +6,8 @@ local root = '/data/users/nilay/the-count/';
 local context = 256;
 local lr = 0.00025;  // 1 x 10 ^ -4
 local decay = 0.01;
-local batch_size = 32;
-local max_instances = null;
+local batch_size = 64;
+local max_instances = 2048;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
@@ -22,7 +22,7 @@ local activation = 'relu';
 
 local cuda_devices = [1, 2];
 
-local reader = {
+local train_reader = {
   type: 'wikitext-reader',
   context: context,
   tokenizer: {
@@ -44,8 +44,31 @@ local reader = {
   manual_distributed_sharding: true,
 };
 
+local eval_reader = {
+  type: 'wikitext-reader',
+  context: context,
+  tokenizer: {
+    type: 'wikitext-tokenizer',
+    tokenizer_path: root + 'unigram-tokenizer.json',
+    add_special_tokens: true,
+  },
+  token_indexers: {
+    tokens: {
+      type: 'single_id',
+      namespace: 'tokens',
+    },
+  },
+  exclusive: false,
+  eval: true,
+  split_on: 'paragraph',
+  min_context_len: 2,
+  max_instances: max_instances,
+  manual_multiprocess_sharding: true,
+  manual_distributed_sharding: true,
+};
+
 {
-  dataset_reader: reader,
+  dataset_reader: train_reader,
   vocabulary: {
     type: 'from_files',
     directory: root + 'data/vocab/',
@@ -87,6 +110,7 @@ local reader = {
   },
   validation_data_loader: {
     type: 'multiprocess',
+    reader: eval_reader,
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,

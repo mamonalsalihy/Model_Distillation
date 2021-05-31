@@ -87,7 +87,6 @@ class StudentModel(Model):
     def forward(
         self,
         tokens: TextFieldTensors,
-        eval : bool = False,
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
@@ -125,7 +124,7 @@ class StudentModel(Model):
 
         # Calculate the teacher's logits
         # ==============================
-        if not eval:
+        if self.training:
             with torch.no_grad():
                 teacher_output = self.teacher(tokens)
                 soft_labels = teacher_output["logits"]
@@ -140,7 +139,7 @@ class StudentModel(Model):
         self.metric(cross_entropy)
 
         # Loss - If we're training, use kl_div. If we're evaluating, use CE
-        if not eval:
+        if self.training:
             loss = self.kl_div(probs, soft_labels)
         else:
             loss = cross_entropy

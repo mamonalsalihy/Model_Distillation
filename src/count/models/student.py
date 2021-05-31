@@ -176,6 +176,8 @@ class StudentModel(Model):
     # change parameters to be a more readable format
     def count_parameters(self):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        teacher_parameters = sum(p.numel() for p in self.teacher.parameters() if p.requires_grad)
+        total -= teacher_parameters
         millions = total // 1_000_000
         thousands = (total - millions * 1_000_000) // 1_000
         string = str(millions) + "." + str(thousands) + "M"

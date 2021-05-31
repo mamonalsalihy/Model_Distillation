@@ -4,10 +4,10 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local context = 256;
-local lr = 0.00025;  // 1 x 10 ^ -4
+local lr = 0.0001;  // 1 x 10 ^ -4
 local decay = 0.01;
-local batch_size = 64;
-local max_instances = 2048;
+local batch_size = 32;
+local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
@@ -95,6 +95,11 @@ local eval_reader = {
       num_layers: num_layers,
       activation: activation,
       dropout: dropout,
+    },
+    initializer: {
+      regexes: [
+        ['.*weight', { type: 'xavier_normal' }],
+      ],
     },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',

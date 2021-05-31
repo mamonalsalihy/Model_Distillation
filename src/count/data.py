@@ -116,11 +116,18 @@ class WikiTextReader(DatasetReader):
                 if line.strip() and line.strip()[0] != "=":
                     yield from self.generate_instances(line)
 
-    def _batchify_tokens(self, tokens: List[Token]) -> Iterable[Instance]:
-        # List of tokens -->
+    def _training_batches(self, tokens: List[Token]) -> Iterable[Instance]:
         step_size = self._context if self._exclusive else 1
-        first_end_index = min(step_size, len(tokens) - 1)
-        for end in range(first_end_index, len(tokens), step_size):
+
+        for start in range(0, len(tokens), step_size):
+            instance = tokens[start : start + self._context]
+            if len(instance) >= self._min_context_len + 1:
+                yield self.text_to_instance(instance)
+
+    def _eval_batches(self, tokens: List[Token]) -> Iterable[Instance]:
+        step_size = self._context if self._exclusive else 1
+
+        for end in range(0, len(tokens), step_size):
             start = max(0, end - self._context)
             instance = tokens[start : end + 1]
             if len(instance) >= self._min_context_len + 1:
@@ -144,23 +151,26 @@ class WikiTextReader(DatasetReader):
         # 2. Tokenize & add cls/sep
         # 3. Yield instances of size `step_size` (1 if we are doing eval, context_len otherwise)
 
-        step_size = self._context if self._exclusive else 1
+        if not self._eval:
+            batchifier = self._training_batches
+        else:
+            batchifier = self._eval_batches
 
         if self._split_on.lower() == "sentence":
             # Split on sentences with CLS and SEP at beg/end
             sentences = self._sentence_splitter.split_sentences(text)
             tokenized_sents = self._tokenizer.batch_tokenize(sentences)
             for tokens in tokenized_sents:
-                yield from self._batchify_tokens(tokens)
+                yield from batchifier(tokens)
         elif self._split_on.lower() == "paragraph":
             # Split on paragraphs with CLS and SEP at beg/end
             tokens = self._tokenizer.tokenize(text)
-            yield from self._batchify_tokens(tokens)
+            yield from batchifier(tokens)
         elif self._split_on.lower() == "paragraph-with-seps":
             # Split on paragraphs with SEP tokens between sentences
             sentences = self._sentence_splitter.split_sentences(text)
             tokens = self._tokenizer.tokenize_paragraph(sentences, add_special_tokens=True)
-            yield from self._batchify_tokens(tokens)
+            yield from batchifier(tokens)
         else:
             raise NotImplementedError(f"Splitting method {self._split_on} not implemented.")
 
@@ -200,7 +210,7 @@ if __name__ == "__main__":
         tokenizer=wiki_tokenizer,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         exclusive=False,
-        split_on="paragraph-with-seps",
+        split_on="paragraph",
         eval=True,
         max_instances=256,
         min_context_len=1,
@@ -212,3 +222,4 @@ if __name__ == "__main__":
     print("Ready...")
     for i in dataset:
         print(i.fields["tokens"])
+        input()

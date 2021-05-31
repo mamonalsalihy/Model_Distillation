@@ -97,7 +97,7 @@ local eval_reader = {
       dropout: dropout,
     },
     teacher: {
-        type: from_archive,
+        type: 'from_archive',
         archive_file: root + teacher_model,
     },
     initializer: {

@@ -27,6 +27,8 @@ from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.modules.transformer import TransformerLayer, TransformerStack
 from allennlp.modules.transformer.positional_encoding import SinusoidalPositionalEncoding
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+from allennlp.nn.initializers import InitializerApplicator
+
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -54,6 +56,7 @@ class StudentModel(Model):
         decoder: Decoder,
         teacher: Model,
         hidden_size: int,
+        initializer: InitializerApplicator,
     ) -> None:
         super().__init__(vocab)
 
@@ -76,6 +79,9 @@ class StudentModel(Model):
         self.teacher = teacher
         self.teacher.eval()  # we don't want to train the teacher
         logger.info("Number of parameters: %s", self.count_parameters())
+
+        # Initialize weights
+        initializer(self)
 
     def forward(
         self,

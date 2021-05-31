@@ -4,10 +4,11 @@ local teacher_model = 'saved-experiments/teacher-2/model.tar.gz';
 
 // Training
 local context = 256;
-local lr = 1e-4;  // 1 x 10 ^ -4
+local lr = 5e-4; 
 local decay = 0.01;
 local batch_size = 64;
-local max_instances = 1024;
+
+local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
@@ -15,12 +16,12 @@ local dropout = 0.3;
 
 // Model config
 local num_layers = 4;
-local embedding_dim = 256;
-local hidden_dim = 512;
-local num_attention_heads = 8;
+local embedding_dim = 128;
+local hidden_dim =128;
+local num_attention_heads = 4;
 local activation = 'relu';
 
-local cuda_devices = [4, 5];
+local cuda_devices = [1, 2];
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -60,7 +61,7 @@ local eval_reader = {
   },
   exclusive: false,
   eval: true,
-  split_on: 'paragraph',
+  split_on: 'sentence',
   min_context_len: 2,
   max_instances: max_instances,
   manual_multiprocess_sharding: true,

@@ -17,7 +17,7 @@ local dropout = 0.3;
 local num_layers = 4;
 local embedding_dim = 256;
 local hidden_dim = 512;
-local num_attention_heads = 6;
+local num_attention_heads = 8;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];

@@ -53,19 +53,19 @@ class SimpleTransformerLanguageModel(Model):
         vocab: Vocabulary,
         embedder: TextFieldEmbedder,
         decoder: Decoder,
-        hidden_size: int,
-        # initializer: InitializerApplicator,
+        embedding_dim: int,
+        max_positions: int,
     ) -> None:
         super().__init__(vocab)
 
         self.embedder = embedder
-        self.pos_embedder = nn.Embedding(512, hidden_size)
+        self.pos_embedder = nn.Embedding(max_positions, embedding_dim)
         self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word
         self.vocab_size = vocab.get_vocab_size()
         self.PAD_IDX = self.vocab.get_token_index(config.PAD)
-        self.lm_head = torch.nn.Linear(hidden_size, self.vocab_size)
+        self.lm_head = torch.nn.Linear(embedding_dim, self.vocab_size, bias=False)
         self.lm_head.weight = self.embedder._token_embedders["tokens"].weight
 
         # self.normalizer = config.BATCH_SIZE * config.CONTEXT_WINDOW

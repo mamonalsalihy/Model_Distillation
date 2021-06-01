@@ -1,13 +1,13 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
-// local root = '/home/offendo/src/the-count/';
+// local root = '/data/users/nilay/the-count/';
+local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 256;
-local lr = 0.0001;  // 1 x 10 ^ -4
-local decay = 0.01;
-local batch_size = 32;
-local max_instances = null;
+local lr = 1e-4;
+local decay = 0.0;
+local batch_size = 4;
+local max_instances = 512;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 10;
@@ -77,7 +77,8 @@ local eval_reader = {
   },
   model: {
     type: 'simple-transformer-language-model',
-    hidden_size: embedding_dim,
+    embedding_dim: embedding_dim,
+    max_positions: context,
     embedder: {
       type: 'basic',
       token_embedders: {
@@ -96,11 +97,11 @@ local eval_reader = {
       activation: activation,
       dropout: dropout,
     },
-    initializer: {
-      regexes: [
-        ['.*weight', { type: 'xavier_normal' }],
-      ],
-    },
+    // initializer: {
+    //   regexes: [
+    //     ['.*weight', { type: 'xavier_normal' }],
+    //   ],
+    // },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
@@ -132,8 +133,13 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    cuda_device: 1,
+    cuda_device: 0,
     grad_norm: 0.25,
+    callbacks: [
+      {
+        type: 'tensorboard',
+      },
+    ],
   },
   // distributed: {
   //   cuda_devices: cuda_devices,

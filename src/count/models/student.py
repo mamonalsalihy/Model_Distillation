@@ -141,6 +141,7 @@ class StudentModel(Model):
         if self.training:
             preds = logits.reshape(-1, self.vocab_size)
             target = target.reshape(-1)
+
         else:  # If we're evaluating, we only care about the last prediction
             logits = logits[:, -1, :]
             student_probs = student_probs[:, -1, :]
@@ -155,6 +156,9 @@ class StudentModel(Model):
             loss = self.kl_div(student_probs, teacher_probs)
         else:
             loss = student_loss
+
+        logger.info("Student Loss: %s", student_loss)
+        logger.info("KLDivergence Loss x 1e10: %s", loss * 1e10)
 
         return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
 

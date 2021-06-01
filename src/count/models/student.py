@@ -157,8 +157,8 @@ class StudentModel(Model):
         else:
             loss = student_loss
 
-        logger.info("Student Loss: %s", student_loss)
-        logger.info("KLDivergence Loss x 1e10: %s", loss * 1e10)
+        logger.info("Student Loss: %s", student_loss.item)
+        logger.info("KLDivergence Loss x 1e10: %s", loss.item * 1e10)
 
         return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
 

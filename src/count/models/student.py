@@ -77,6 +77,7 @@ class StudentModel(Model):
         self.cross_entropy = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         self.teacher = teacher
+        # does this work? will passing the model to the trainer set this to train?
         self.teacher.eval()  # we don't want to train the teacher
         logger.info("Number of parameters: %s", self.count_parameters())
 
@@ -94,7 +95,7 @@ class StudentModel(Model):
         # Get source and target
         # =====================
         source = token_ids[:, :-1]
-        hard_targets = token_ids[:, 1:]
+        target = token_ids[:, 1:]
 
         # Embed the tokens
         # ================
@@ -120,7 +121,8 @@ class StudentModel(Model):
         # =======================
         decoded = self.decoder(source_embeddings, attn_mask=mask, key_padding_mask=key_mask)
         logits = self.linear(decoded)  # shape (batch_size, seq_len, vocab_size)
-        probs = torch.nn.functional.softmax(logits, dim=2)
+        # KLDivergence expects log probabilities for the student probabilities
+        student_probs = torch.nn.functional.log_softmax(logits, dim=2)
 
         # Calculate the teacher's logits
         # ==============================
@@ -128,23 +130,33 @@ class StudentModel(Model):
             with torch.no_grad():
                 teacher_output = self.teacher(tokens)
                 soft_labels = teacher_output["logits"]
+                # KLDivergence expects probabilities for the teacher tensor
+                teacher_probs = torch.nn.functional.softmax(soft_labels, dim=2)
 
         # Calculate loss & Perplexity
         # ===========================
 
         # Perplexity
-        cross_entropy = self.cross_entropy(
-            logits.reshape(-1, self.vocab_size), hard_targets.reshape(-1)
-        )
-        self.metric(cross_entropy)
+        # perplexity is calculated using the output of the student and the golen truth
+        if self.training:
+            preds = logits.reshape(-1, self.vocab_size)
+            target = target.reshape(-1)
+        else:  # If we're evaluating, we only care about the last prediction
+            logits = logits[:, -1, :]
+            student_probs = student_probs[:, -1, :]
+            preds = logits.reshape(-1, self.vocab_size)
+            target = target[:, -1].reshape(-1)
+
+        student_loss = self.cross_entropy(preds, target)
+        self.metric(student_loss)
 
         # Loss - If we're training, use kl_div. If we're evaluating, use CE
         if self.training:
-            loss = self.kl_div(probs, soft_labels)
+            loss = self.kl_div(student_probs, teacher_probs)
         else:
-            loss = cross_entropy
+            loss = student_loss
 
-        return {"logits": logits, "loss": loss, "probs": probs}
+        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]

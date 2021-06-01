@@ -76,6 +76,7 @@ class SimpleTransformerLanguageModel(Model):
         logger.info("Number of parameters: %s", self.count_parameters())
 
         # Initialize weights
+        logger.info("Initializing...")
         self.apply(self.init_weights)
 
     def forward(
@@ -130,14 +131,16 @@ class SimpleTransformerLanguageModel(Model):
         # loss = temp / self.normalizer
         # new_normalized = temp / (self.normalizer * self.dif_tokenizers_ratio)
 
-        if self.training:
-            preds = logits.reshape(-1, self.vocab_size)
-            target = target.reshape(-1)
-        else:  # If we're evaluating, we only care about the last prediction
-            logits = logits[:, -1, :]
-            probs = probs[:, -1, :]
-            preds = logits.reshape(-1, self.vocab_size)
-            target = target[:, -1].reshape(-1)
+        preds = logits.reshape(-1, self.vocab_size)
+        target = target.reshape(-1)
+        # if self.training:
+        #     preds = logits.reshape(-1, self.vocab_size)
+        #     target = target.reshape(-1)
+        # else:  # If we're evaluating, we only care about the last prediction
+        #     logits = logits[:, -1, :]
+        #     probs = probs[:, -1, :]
+        #     preds = logits.reshape(-1, self.vocab_size)
+        #     target = target[:, -1].reshape(-1)
 
         loss = self.loss(preds, target)
         self.metric(loss)
@@ -178,7 +181,6 @@ class SimpleTransformerLanguageModel(Model):
         return string
 
     def init_weights(self, module):
-        logger.info("Initializing...")
         if isinstance(module, (nn.Linear, nn.Embedding, nn.LayerNorm)):
             module.weight.data.normal_(mean=0.0, std=0.02)
         if isinstance(module, (nn.Linear, nn.LayerNorm)) and module.bias is not None:

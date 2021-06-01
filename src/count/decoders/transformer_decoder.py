@@ -29,7 +29,6 @@ class TransformerDecoder(nn.Module):
         num_layers: int,
         dropout: float,
         activation: Optional[str] = "relu",
-        norm: Optional[LayerNorm] = None,
         **kwargs,
     ) -> None:
         """Simple Transformer-Decoder model (no encoder at all).
@@ -58,7 +57,6 @@ class TransformerDecoder(nn.Module):
                 hidden_dim=hidden_dim,
                 dropout=dropout,
                 activation=activation,
-                norm=norm,
             )
             decoder_layers.append(layer)
 
@@ -84,7 +82,6 @@ class TransformerDecoderLayer(nn.Module):
         hidden_dim: int,
         dropout: float,
         activation: Optional[str] = "relu",
-        norm: Optional[LayerNorm] = None,
         **kwargs,
     ) -> None:
         """Simple Transformer-Decoder block (no encoder at all).
@@ -103,18 +100,23 @@ class TransformerDecoderLayer(nn.Module):
             Default is "relu"
         """
         super().__init__(**kwargs)
+
+        # attention
         self.self_attn = nn.MultiheadAttention(
             embed_dim=input_dim, num_heads=num_attention_heads, dropout=dropout
         )
 
-        self.feedforward = FeedForward(
-            input_dim=input_dim,
-            num_layers=2,
-            hidden_dims=[hidden_dim, input_dim],
-            activations=Activation.by_name(activation)(),
-            dropout=dropout,
+        # FF network
+        self.feedforward = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, input_dim)
         )
-        self.norm = norm or LayerNorm(input_dim)
+
+        # dropout
+        self.dropout = nn.Dropout(dropout)
+
+        # norms
+        self.norm_1 = nn.LayerNorm(input_dim, eps=1e-12)
+        self.norm_2 = nn.LayerNorm(input_dim, eps=1e-12)
 
     def forward(
         self,
@@ -140,7 +142,12 @@ class TransformerDecoderLayer(nn.Module):
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
         target = target.permute(1, 0, 2)
-        attn_target, weights = self.self_attn(
+
+        # norm
+        target = self.norm_1(target)
+
+        # attention
+        attn_target, _ = self.self_attn(
             key=target,
             value=target,
             query=target,
@@ -148,14 +155,13 @@ class TransformerDecoderLayer(nn.Module):
             attn_mask=attn_mask,
         )
         # add + norm
-        target = self.norm(target + attn_target).permute(1, 0, 2)
+        target = self.norm_2(target + attn_target).permute(1, 0, 2)
 
-        # feedforward
-        ff_target = self.feedforward(target)
+        # feedforward + dropout
+        ff_target = self.dropout(self.feedforward(target))
 
-        # add + norm
-        target = self.norm(target + ff_target)
-        return target
+        # add
+        return target + ff_target
 
 
 if __name__ == "__main__":

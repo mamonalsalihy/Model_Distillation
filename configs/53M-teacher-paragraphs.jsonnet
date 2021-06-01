@@ -14,10 +14,10 @@ local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 8;
-local embedding_dim = 512;
-local hidden_dim = 1536;
-local num_attention_heads = 8;
+local num_layers = 12;
+local embedding_dim = 410;
+local hidden_dim = 2100;
+local num_attention_heads = 10;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
@@ -128,13 +128,14 @@ local eval_reader = {
     num_epochs: epochs,
     patience: patience,
     optimizer: {
-      type: 'adamw',
+      type: 'adam',
       lr: lr,
       weight_decay: decay,
     },
-    // cuda_device: 0,
+    cuda_device: 1,
+    grad_norm: 0.25,
   },
-  distributed: {
-    cuda_devices: cuda_devices,
-  },
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

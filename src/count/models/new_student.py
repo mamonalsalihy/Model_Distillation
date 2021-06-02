@@ -61,7 +61,7 @@ class NewStudentModel(Model):
         super().__init__(vocab)
 
         self.embedder = embedder
-        self.pos_emb = nn.Embedding(max_positions, embedding_dim)
+        self.pos_embedder = nn.Embedding(max_positions, embedding_dim)
         self.decoder = decoder
 
         # linear layer that maps the last last transformer layer to logits for each word

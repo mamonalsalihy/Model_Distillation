@@ -72,6 +72,7 @@ allennlp tune configs/baseline/simple-transformer-language-model.jsonnet \ # Spe
               --serialization-dir experiments/hpo \ # specify a directory for the experiment (saved models, logs, metadata, etc.)
               --study-name sample-test \ # Name experiment trial 
               --include-package src.count # specify any packages to include code from
+              --skip-if-exists \ # Optional flag to save results in the same study.
 ```
 
 

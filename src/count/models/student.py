@@ -80,6 +80,8 @@ class StudentModel(Model):
         # does this work? will passing the model to the trainer set this to train?
         self.teacher.eval()  # we don't want to train the teacher
         logger.info("Number of parameters: %s", self.count_parameters())
+        print(self.teacher)
+        exit()
 
         # Initialize weights
         if initializer is not None:

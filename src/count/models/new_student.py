@@ -75,7 +75,8 @@ class NewStudentModel(Model):
         self.cross_entropy = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         self.teacher = teacher
-        self.teacher.eval()  # we don't want to train the teacher
+        # move self.teacher.eval() to forward method
+        # i think it is causing the teacher to not be loaded properly
         logger.info("Number of parameters: %s", self.count_parameters())
 
         # Initialize weights
@@ -86,6 +87,9 @@ class NewStudentModel(Model):
         self,
         tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
+        # set the teacher to not calc gradient
+        self.teacher.eval()
+
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 

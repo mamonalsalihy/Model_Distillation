@@ -141,7 +141,8 @@ class StudentModel(Model):
         if self.training:
             preds = logits.reshape(-1, self.vocab_size)
             target = target.reshape(-1)
-
+            teacher_preds = soft_labels.reshape(-1, self.vocab_size)
+            teacher_loss = self.cross_entropy(teacher_preds, target)
         else:  # If we're evaluating, we only care about the last prediction
             logits = logits[:, -1, :]
             student_probs = student_probs[:, -1, :]
@@ -158,9 +159,12 @@ class StudentModel(Model):
             loss = student_loss
 
         logger.info("Student Loss: %s", student_loss.item())
+        # print the teacher loss if the model is still training
+        if self.training:
+            logger.info("Teacher Loss: %s", teacher_loss.item())
         logger.info("KLDivergence Loss x 1e10: %s", loss.item() * 1e10)
 
-        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
+        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss, "teacher_loss": teacher_loss}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]

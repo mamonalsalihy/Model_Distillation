@@ -4,20 +4,20 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local context = 256;
-local lr = 0.0001;  // 1 x 10 ^ -4
-local decay = 0.01;
+local lr = 1e-4;
+local decay = 0.0;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
-local patience = 10;
-local dropout = 0.3;
+local patience = 50;
+local dropout = 0.1;
 
 // Model config
-local num_layers = 8;
-local embedding_dim = 512;
-local hidden_dim = 1536;
-local num_attention_heads = 8;
+local num_layers = 12;
+local embedding_dim = 410;
+local hidden_dim = 2100;
+local num_attention_heads = 10;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
@@ -77,7 +77,8 @@ local eval_reader = {
   },
   model: {
     type: 'simple-transformer-language-model',
-    hidden_size: embedding_dim,
+    embedding_dim: embedding_dim,
+    max_positions: context,
     embedder: {
       type: 'basic',
       token_embedders: {
@@ -96,11 +97,11 @@ local eval_reader = {
       activation: activation,
       dropout: dropout,
     },
-    initializer: {
-      regexes: [
-        ['.*weight', { type: 'xavier_normal' }],
-      ],
-    },
+    // initializer: {
+    //   regexes: [
+    //     ['.*weight', { type: 'xavier_normal' }],
+    //   ],
+    // },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
@@ -115,7 +116,6 @@ local eval_reader = {
   },
   validation_data_loader: {
     type: 'multiprocess',
-    reader: eval_reader,
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
@@ -128,13 +128,23 @@ local eval_reader = {
     num_epochs: epochs,
     patience: patience,
     optimizer: {
-      type: 'adamw',
+      type: 'adam',
       lr: lr,
       weight_decay: decay,
     },
-    // cuda_device: 0,
+    // learning_rate_scheduler: {
+    //   type: 'cosine',
+    //   t_initial: epochs,
+    // },
+    cuda_device: 1,
+    grad_norm: 0.25,
+    callbacks: [
+      {
+        type: 'tensorboard',
+      },
+    ],
   },
-  distributed: {
-    cuda_devices: cuda_devices,
-  },
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

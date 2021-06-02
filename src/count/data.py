@@ -6,7 +6,7 @@ import os
 import sys
 from itertools import islice
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
 from tqdm import tqdm
 
 # AllenNLP

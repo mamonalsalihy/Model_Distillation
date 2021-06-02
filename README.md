@@ -62,13 +62,16 @@ allennlp train configs/example-config.jsonnet \     # specify which config file 
 
 Hyperparameter optimization
 ---------------------------
-Currently under construction
+Currently we use Optuna for hpo as there is integrated support with AllenNLP.
+```bash
+To install Optuna please follow the following instructions: https://github.com/himkt/allennlp-optuna
+```
 Example command:
 ```bash
 allennlp tune configs/simple-transformer-language-model.jsonnet \ # Specifies config file for language model
               configs/hparams.json \ # Hyperparameters to optimize
               --serialization-dir experiments/hpo \ # specify a directory for the experiment (saved models, logs, metadata, etc.)
-              --study-name sample-test \ # Name experiement trial 
+              --study-name sample-test \ # Name experiment trial 
               --include-package src.count # specify any packages to include code from
 ```
 

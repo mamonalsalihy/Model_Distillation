@@ -75,21 +75,19 @@ class NewStudentModel(Model):
         self.cross_entropy = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         self.teacher = teacher
-        # move self.teacher.eval() to forward method
-        # i think it is causing the teacher to not be loaded properly
+        # set the teacher to not calc gradient
+        self.teacher.eval()
         logger.info("Number of parameters: %s", self.count_parameters())
 
         # Initialize weights
         logger.info("Initializing...")
-        self.apply(self.init_weights)
+        # i think this might be overridding the loaded weights for teacher
+        # self.apply(self.init_weights)
 
     def forward(
         self,
         tokens: TextFieldTensors,
     ) -> Dict[str, torch.Tensor]:
-        # set the teacher to not calc gradient
-        # self.teacher.eval()
-
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
 
@@ -134,12 +132,11 @@ class NewStudentModel(Model):
         # Calculate the teacher's logits
         # ==============================
         if self.training:
-            # with torch.no_grad():
-            # im going to try experimenting without torch.no_grad()
-            teacher_output = self.teacher(tokens)
-            soft_labels = teacher_output["logits"]
-            # KLDivergence expects probabilities for the teacher tensor
-            teacher_probs = torch.nn.functional.softmax(soft_labels, dim=2)
+            with torch.no_grad():
+                teacher_output = self.teacher(tokens)
+                soft_labels = teacher_output["logits"]
+                # KLDivergence expects probabilities for the teacher tensor
+                teacher_probs = torch.nn.functional.softmax(soft_labels, dim=2)
 
         # Calculate loss & Perplexity
         # ===========================
@@ -172,8 +169,7 @@ class NewStudentModel(Model):
             logger.info("Teacher Loss: %s", teacher_loss.item())
         logger.info("KLDivergence Loss x 1e10: %s", loss.item() * 1e10)
 
-        return self.teacher(tokens)
-        # return {"logits": logits, "loss": teacher_loss, "log_probs": student_probs, "student_loss": student_loss}
+        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]

@@ -27,6 +27,8 @@ from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.modules.transformer import TransformerLayer, TransformerStack
 from allennlp.modules.transformer.positional_encoding import SinusoidalPositionalEncoding
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+from allennlp.nn.initializers import InitializerApplicator
+
 
 # Inference
 from allennlp.predictors.predictor import Predictor
@@ -45,7 +47,7 @@ from src.count.decoders.base_decoder import Decoder
 logger = logging.getLogger(__name__)
 
 
-@Model.register("student", exist_ok=True)
+@Model.register("student-language-model", exist_ok=True)
 class StudentModel(Model):
     def __init__(
         self,
@@ -54,6 +56,7 @@ class StudentModel(Model):
         decoder: Decoder,
         teacher: Model,
         hidden_size: int,
+        initializer: InitializerApplicator = None,
     ) -> None:
         super().__init__(vocab)
 
@@ -74,13 +77,17 @@ class StudentModel(Model):
         self.cross_entropy = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         self.teacher = teacher
+        # does this work? will passing the model to the trainer set this to train?
         self.teacher.eval()  # we don't want to train the teacher
         logger.info("Number of parameters: %s", self.count_parameters())
+
+        # Initialize weights
+        if initializer is not None:
+            initializer(self)
 
     def forward(
         self,
         tokens: TextFieldTensors,
-        eval : bool = False,
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
@@ -88,7 +95,7 @@ class StudentModel(Model):
         # Get source and target
         # =====================
         source = token_ids[:, :-1]
-        hard_targets = token_ids[:, 1:]
+        target = token_ids[:, 1:]
 
         # Embed the tokens
         # ================
@@ -114,31 +121,50 @@ class StudentModel(Model):
         # =======================
         decoded = self.decoder(source_embeddings, attn_mask=mask, key_padding_mask=key_mask)
         logits = self.linear(decoded)  # shape (batch_size, seq_len, vocab_size)
-        probs = torch.nn.functional.softmax(logits, dim=2)
+        # KLDivergence expects log probabilities for the student probabilities
+        student_probs = torch.nn.functional.log_softmax(logits, dim=2)
 
         # Calculate the teacher's logits
         # ==============================
-        if not eval:
+        if self.training:
             with torch.no_grad():
                 teacher_output = self.teacher(tokens)
                 soft_labels = teacher_output["logits"]
+                # KLDivergence expects probabilities for the teacher tensor
+                teacher_probs = torch.nn.functional.softmax(soft_labels, dim=2)
 
         # Calculate loss & Perplexity
         # ===========================
 
         # Perplexity
-        cross_entropy = self.cross_entropy(
-            logits.reshape(-1, self.vocab_size), hard_targets.reshape(-1)
-        )
-        self.metric(cross_entropy)
+        # perplexity is calculated using the output of the student and the golen truth
+        if self.training:
+            preds = logits.reshape(-1, self.vocab_size)
+            target = target.reshape(-1)
+            teacher_preds = soft_labels.reshape(-1, self.vocab_size)
+            teacher_loss = self.cross_entropy(teacher_preds, target)
+        else:  # If we're evaluating, we only care about the last prediction
+            logits = logits[:, -1, :]
+            student_probs = student_probs[:, -1, :]
+            preds = logits.reshape(-1, self.vocab_size)
+            target = target[:, -1].reshape(-1)
+
+        student_loss = self.cross_entropy(preds, target)
+        self.metric(student_loss)
 
         # Loss - If we're training, use kl_div. If we're evaluating, use CE
-        if not eval:
-            loss = self.kl_div(probs, soft_labels)
+        if self.training:
+            loss = self.kl_div(student_probs, teacher_probs)
         else:
-            loss = cross_entropy
+            loss = student_loss
 
-        return {"logits": logits, "loss": loss, "probs": probs}
+        logger.info("Student Loss: %s", student_loss.item())
+        # print the teacher loss if the model is still training
+        if self.training:
+            logger.info("Teacher Loss: %s", teacher_loss.item())
+        logger.info("KLDivergence Loss x 1e10: %s", loss.item() * 1e10)
+
+        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]
@@ -170,6 +196,8 @@ class StudentModel(Model):
     # change parameters to be a more readable format
     def count_parameters(self):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        teacher_parameters = sum(p.numel() for p in self.teacher.parameters() if p.requires_grad)
+        total -= teacher_parameters
         millions = total // 1_000_000
         thousands = (total - millions * 1_000_000) // 1_000
         string = str(millions) + "." + str(thousands) + "M"

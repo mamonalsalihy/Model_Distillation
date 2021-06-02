@@ -164,7 +164,7 @@ class StudentModel(Model):
             logger.info("Teacher Loss: %s", teacher_loss.item())
         logger.info("KLDivergence Loss x 1e10: %s", loss.item() * 1e10)
 
-        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss, "teacher_loss": teacher_loss}
+        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]

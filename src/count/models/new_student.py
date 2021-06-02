@@ -134,11 +134,12 @@ class NewStudentModel(Model):
         # Calculate the teacher's logits
         # ==============================
         if self.training:
-            with torch.no_grad():
-                teacher_output = self.teacher(tokens)
-                soft_labels = teacher_output["logits"]
-                # KLDivergence expects probabilities for the teacher tensor
-                teacher_probs = torch.nn.functional.softmax(soft_labels, dim=2)
+            # with torch.no_grad():
+            # im going to try experimenting without torch.no_grad()
+            teacher_output = self.teacher(tokens)
+            soft_labels = teacher_output["logits"]
+            # KLDivergence expects probabilities for the teacher tensor
+            teacher_probs = torch.nn.functional.softmax(soft_labels, dim=2)
 
         # Calculate loss & Perplexity
         # ===========================

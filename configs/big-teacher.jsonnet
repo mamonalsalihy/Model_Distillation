@@ -1,17 +1,17 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
 local context = 256;
 local lr = 1e-4;
 local decay = 0.0;
-local batch_size = 4;
-local max_instances = 512;
+local batch_size = 32;
+local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
-local patience = 10;
-local dropout = 0.3;
+local patience = 50;
+local dropout = 0.1;
 
 // Model config
 local num_layers = 12;
@@ -116,7 +116,6 @@ local eval_reader = {
   },
   validation_data_loader: {
     type: 'multiprocess',
-    reader: eval_reader,
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
@@ -133,7 +132,11 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    cuda_device: 0,
+    // learning_rate_scheduler: {
+    //   type: 'cosine',
+    //   t_initial: epochs,
+    // },
+    cuda_device: 1,
     grad_norm: 0.25,
     callbacks: [
       {

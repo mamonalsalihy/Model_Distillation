@@ -4,24 +4,24 @@ local teacher_model = 'saved-experiments/paragraphs/model.tar.gz';
 
 // Training
 local context = 256;
-local lr = 1e-4;
+local lr = 1e-3;
 local decay = 0.0;
 local batch_size = 32;
-local max_instances = 1024;
+local max_instances = null;
 local max_instances_memory = null;
-local epochs = 5;
+local epochs = 50;
 local patience = 50;
-local dropout = 0.1;
+local dropout = 0.5;
 
 // Model config
-local num_layers = 4;
-local embedding_dim = 128;
-local hidden_dim = 128;
+local num_layers = 6;
+local embedding_dim = 256;
+local hidden_dim = 1024;
 local num_attention_heads = 4;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
-local cuda_device = 4;
+local cuda_device = 5;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -136,7 +136,7 @@ local eval_reader = {
     //   type: 'cosine',
     //   t_initial: epochs,
     // },
-    cuda_device: 1,
+    cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {

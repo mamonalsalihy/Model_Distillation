@@ -1,6 +1,6 @@
 // Paths
 local root = '/data/users/aukking/Model_Distillation/';
-local teacher_model = 'saved-experiments/paragraphs/model.tar.gz';
+local teacher_model = '/data/users/aukking/Model_Distillation/saved-experiments/paragraphs/model.tar.gz';
 
 // Training
 local context = 256;
@@ -9,7 +9,7 @@ local decay = 0.0;
 local batch_size = 32;
 local max_instances = 1024;
 local max_instances_memory = null;
-local epochs = 50;
+local epochs = 5;
 local patience = 50;
 local dropout = 0.1;
 
@@ -21,6 +21,7 @@ local num_attention_heads = 10;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
+local cuda_device = 5;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -77,7 +78,7 @@ local eval_reader = {
   },
   model: {
     type: 'from_archive',
-    achive_file: root + teacher_model,
+    archive_file: teacher_model,
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
@@ -112,7 +113,7 @@ local eval_reader = {
     //   type: 'cosine',
     //   t_initial: epochs,
     // },
-    cuda_device: 1,
+    cuda_device: 5,
     grad_norm: 0.25,
     callbacks: [
       {

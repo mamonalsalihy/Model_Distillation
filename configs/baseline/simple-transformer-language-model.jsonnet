@@ -2,23 +2,23 @@
 local root = '/data/users/nilay/the-count/';
 
 // Training
-local context = 96;
-local lr = 0.0005;  // 5 x 10 ^ -4
-local batch_size = 32;
+local context = std.parseInt(std.extVar('context'));
+local lr = std.parseJson(std.extVar('lr'));
+local batch_size = std.parseInt(std.extVar('batch_size'));
 local max_instances = null;
-local max_instances_memory = null;
+local max_instances_memory = 1000;
 local epochs = 50;
 local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = 4;
-local embedding_dim = 128;
+local num_layers = std.parseInt(std.extVar('num_layers'));
+local embedding_dim = std.parseInt(std.extVar('embedding_dim'));
 local hidden_dim = 196;
 local num_attention_heads = 4;
 local activation = 'relu';
 
-local cuda_devices = [1, 2, 3, 4];
+local cuda_devices = [0, 3];
 
 local reader = {
   type: 'wikitext-reader',

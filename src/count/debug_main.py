@@ -35,7 +35,7 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
-from src.count.models.reverse_transformer import ReverseTransformerLanguageModel
+from src.count.models.direction_transformer import DirectionTransformerLanguageModel
 from src.count.models.student import StudentModel
 from src.count.models.new_student import NewStudentModel
 from src.count.tokenizer import WikiTextTokenizer
@@ -112,12 +112,13 @@ if __name__ == "__main__":
         activation=config.ACTIVATION,
     )
 
-    model = ReverseTransformerLanguageModel(
+    model = DirectionTransformerLanguageModel(
         vocab=vocab,
         embedder=embedder,
         decoder=decoder.to(config.DEVICE_1),
         embedding_dim=config.EMBEDDING_DIMENSION,
         max_positions=config.CONTEXT_WINDOW,
+        backward=True,
     )
 
     trainer = GradientDescentTrainer(

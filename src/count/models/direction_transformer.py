@@ -46,8 +46,8 @@ from src.count.decoders.base_decoder import Decoder
 logger = logging.getLogger(__name__)
 
 
-@Model.register("reverse-transformer-language-model", exist_ok=True)
-class ReverseTransformerLanguageModel(Model):
+@Model.register("direction-transformer-language-model", exist_ok=True)
+class DirectionTransformerLanguageModel(Model):
     def __init__(
         self,
         vocab: Vocabulary,
@@ -55,6 +55,7 @@ class ReverseTransformerLanguageModel(Model):
         decoder: Decoder,
         embedding_dim: int,
         max_positions: int,
+        backward: bool = False,
     ) -> None:
         super().__init__(vocab)
 
@@ -75,6 +76,9 @@ class ReverseTransformerLanguageModel(Model):
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
         logger.info("Number of parameters: %s", self.count_parameters())
 
+        # sets the transformer to be backward or forwards
+        self.backward = backward
+
         # Initialize weights
         logger.info("Initializing...")
         self.apply(self.init_weights)
@@ -85,12 +89,13 @@ class ReverseTransformerLanguageModel(Model):
     ) -> Dict[str, torch.Tensor]:
         # shape (batch_size, timesteps)
         token_ids = tokens["tokens"]["tokens"]
+        if self.backward:
+            token_ids = torch.fliplr(token_ids)
 
         # Get source and target
         # =====================
-        # for reverse masking we want the target to be offset before the source
-        source = token_ids[:, 1:]
-        target = token_ids[:, :-1]
+        source = token_ids[:, :-1]
+        target = token_ids[:, 1:]
 
         # Embed the tokens
         # ================
@@ -101,11 +106,11 @@ class ReverseTransformerLanguageModel(Model):
         embeddings = embeddings + pos_embeddings
 
         # get the first part of the window
-        source_embeddings = embeddings[:, 1:, :]
+        source_embeddings = embeddings[:, :-1, :]
 
         # Construct attention masks
         # =========================
-        key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, 1:]
+        key_mask = get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
         # invert the mask, so we have True where padding is and False where words are
         key_mask = ~key_mask
 
@@ -116,12 +121,7 @@ class ReverseTransformerLanguageModel(Model):
             device=embeddings.device,
             dtype=embeddings.dtype,
         )
-        # construct a standard attention mask for forward direction
         attn_mask = torch.triu(attn_mask, diagonal=1)
-        # we need to flip it for reverse direction
-        # note, this is inefficient
-        attn_mask = torch.fliplr(attn_mask)
-        print(attn_mask)
 
         # Run through the decoder
         # =======================
@@ -147,11 +147,8 @@ class ReverseTransformerLanguageModel(Model):
         #     probs = probs[:, -1, :]
         #     preds = logits.reshape(-1, self.vocab_size)
         #     target = target[:, -1].reshape(-1)
-        print(preds[0])
-        print(target[0])
 
         loss = self.loss(preds, target)
-        print(loss)
         self.metric(loss)
         return {"logits": logits, "loss": loss, "probs": probs}
 

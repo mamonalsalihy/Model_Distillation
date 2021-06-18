@@ -15,7 +15,6 @@ local dropout = 0.1;
 
 // Scheduler stuff
 local warmup_steps = 100000;
-local steps_per_epoch = 30000;
 
 // Model config
 local num_layers = 12;
@@ -24,7 +23,7 @@ local hidden_dim = 2100;
 local num_attention_heads = 10;
 local activation = 'relu';
 
-local cuda_devices = [1, 2];
+local cuda_devices = [1, 2, 3, 4];
 local cuda_device = 0;
 
 local train_reader = {

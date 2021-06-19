@@ -24,7 +24,7 @@ local num_attention_heads = 10;
 local activation = 'relu';
 
 local cuda_devices = [1, 2, 3, 4];
-local cuda_device = 0;
+local cuda_device = 2;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -136,7 +136,7 @@ local eval_reader = {
       type: 'constant_with_warmup',
       num_warmup_steps: warmup_steps,
     },
-    cuda_device: 1,
+    cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {

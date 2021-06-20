@@ -28,6 +28,8 @@ from allennlp.predictors.predictor import Predictor
 from allennlp.training.metrics import Perplexity
 from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
+import src.count.models.bidirection_transformer
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 # Local
@@ -35,12 +37,15 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
+from src.count.models.direction_transformer import DirectionTransformerLanguageModel
+from src.count.models.bidirection_transformer import BiDirectionTransformerLanguageModel
 from src.count.models.student import StudentModel
 from src.count.models.new_student import NewStudentModel
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 
 
+# sets the logging info to be very verbose
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
@@ -103,27 +108,19 @@ if __name__ == "__main__":
     # =======================
     decoder = TransformerDecoder(
         input_dim=config.EMBEDDING_DIMENSION,
+        hidden_dim=config.HIDDEN_DIMENSION,
         num_attention_heads=config.NUM_ATTENTION_HEADS,
         num_layers=config.TRANSFORMER_LAYERS,
-        hidden_dim=config.HIDDEN_DIMENSION,
         dropout=config.DROPOUT,
         activation=config.ACTIVATION,
-        norm=None,
     )
 
-    teacher_model = SimpleTransformerLanguageModel(
+    model = BiDirectionTransformerLanguageModel(
         vocab=vocab,
         embedder=embedder,
         decoder=decoder.to(config.DEVICE_1),
-        hidden_size=config.EMBEDDING_DIMENSION,
-    )
-
-    model = StudentModel(
-        vocab=vocab,
-        embedder=embedder,
-        decoder=decoder.to(config.DEVICE_1),
-        teacher=teacher_model,
-        hidden_size=config.EMBEDDING_DIMENSION
+        embedding_dim=config.EMBEDDING_DIMENSION,
+        max_positions=config.CONTEXT_WINDOW,
     )
 
     trainer = GradientDescentTrainer(
@@ -144,5 +141,3 @@ if __name__ == "__main__":
     # Run training
     # ============
     trainer.train()
-
-    # need some mechanism to save the model once its been trained

@@ -65,11 +65,12 @@ class TransformerDecoder(nn.Module):
     def forward(
         self,
         target: torch.Tensor,
+        context: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
-            target = layer(target, attn_mask, key_padding_mask)
+            target = layer(target, context, attn_mask, key_padding_mask)
 
         return target
 
@@ -121,6 +122,7 @@ class TransformerDecoderLayer(nn.Module):
     def forward(
         self,
         target: torch.Tensor,
+        context: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -129,7 +131,9 @@ class TransformerDecoderLayer(nn.Module):
         Arguments
         ---------
         target : torch.Tensor
-            Sequence of embeddings to decode, of shape `(batch_size, N, embedding_dim)`
+            Sequence of embeddings to decode, of shape `(batch_size, L, embedding_dim)`
+        context : torch.Tensor
+            Sequence of embeddings to attend to, of shape `(batch_size, S, embedding_dim)`
         attn_mask : torch.Tensor
             Binary matrix indicating which items in `target` to attend to (1) or ignore (0) at each
             timestep. Shape is `(batch_size, N, N)`
@@ -142,15 +146,17 @@ class TransformerDecoderLayer(nn.Module):
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
         target = target.permute(1, 0, 2)
+        context = context.permute(1, 0, 2)
 
         # norm
         target = self.norm_1(target)
+        context = self.norm_1(context)
 
         # attention
         attn_target, _ = self.self_attn(
             key=target,
-            value=target,
-            query=target,
+            value=context,
+            query=context,
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
         )

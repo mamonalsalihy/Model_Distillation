@@ -56,7 +56,7 @@ class NewStudentModel(Model):
         decoder: Decoder,
         embedding_dim: int,
         max_positions: int,
-        teacher: Model
+        teacher: Model,
     ) -> None:
         super().__init__(vocab)
 
@@ -146,7 +146,7 @@ class NewStudentModel(Model):
         if self.training:
             preds = logits.reshape(-1, self.vocab_size)
             target = target.reshape(-1)
-            teacher_preds = soft_labels.reshape(-1, self.vocab_size)  
+            teacher_preds = soft_labels.reshape(-1, self.vocab_size)
             teacher_loss = self.cross_entropy(teacher_preds, target)
         else:  # If we're evaluating, we only care about the last prediction
             logits = logits[:, -1, :]
@@ -169,7 +169,12 @@ class NewStudentModel(Model):
             logger.info("Teacher Loss: %s", teacher_loss.item())
         logger.info("KLDivergence Loss x 1e10: %s", loss.item() * 1e10)
 
-        return {"logits": logits, "loss": loss, "log_probs": student_probs, "student_loss": student_loss}
+        return {
+            "logits": logits,
+            "loss": loss,
+            "log_probs": student_probs,
+            "student_loss": student_loss,
+        }
 
     def make_output_human_readable(
         self, output_dict: Dict[str, torch.Tensor]
@@ -198,7 +203,6 @@ class NewStudentModel(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"perplexity": self.metric.get_metric(reset)}
 
-    # change parameters to be a more readable format
     def count_parameters(self):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)
         teacher_parameters = sum(p.numel() for p in self.teacher.parameters() if p.requires_grad)

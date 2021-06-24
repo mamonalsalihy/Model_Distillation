@@ -1,19 +1,21 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
+// local root = '/data/users/nilay/the-count/';
+local root = '/data/users/malsalih/Model_Distillation/';
 
 // Training
-local context = std.parseInt(std.extVar('context'));
-local lr = std.parseJson(std.extVar('lr'));
-local batch_size = std.parseInt(std.extVar('batch_size'));
-local max_instances = null;
-local max_instances_memory = 1000;
+local context = 96;
+local lr = 0.0005;
+local batch_size = 32;
+local max_instances = 1024;
+local max_instances_memory = 1024;
 local epochs = 50;
 local patience = 10;
 local dropout = 0.3;
 
 // Model config
-local num_layers = std.parseInt(std.extVar('num_layers'));
-local embedding_dim = std.parseInt(std.extVar('embedding_dim'));
+local num_layers = 4;
+local embedding_dim = 128;
+local max_positions = 256;
 local hidden_dim = 196;
 local num_attention_heads = 4;
 local activation = 'relu';
@@ -52,25 +54,26 @@ local reader = {
   },
   model: {
     type: 'simple-transformer-language-model',
-    hidden_size: embedding_dim,
     embedder: {
       type: 'basic',
       token_embedders: {
         tokens: {
           type: 'embedding',
-          embedding_dim: embedding_dim,
+          embedding_dim: 128,
         },
       },
     },
     decoder: {
       type: 'gpt2-transformer-decoder',
-      input_dim: embedding_dim,
+      input_dim: 128,
       hidden_dim: hidden_dim,
       num_attention_heads: num_attention_heads,
       num_layers: num_layers,
       activation: activation,
       dropout: dropout,
     },
+    embedding_dim: embedding_dim,
+    max_positions: max_positions,
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',

@@ -1,17 +1,11 @@
 # STL
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 # Torch
 import torch.nn as nn
 import torch
-
-# AllenNLP
-from allennlp.models import Model
-from allennlp.modules.feedforward import FeedForward
-from allennlp.modules.layer_norm import LayerNorm
-from allennlp.nn.activations import Activation
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 

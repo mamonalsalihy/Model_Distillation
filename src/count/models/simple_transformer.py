@@ -1,7 +1,6 @@
 # STL
 import logging
 import sys
-import numpy
 from pathlib import Path
 from typing import Dict
 
@@ -12,26 +11,14 @@ import torch.nn as nn
 # AllenNLP
 from allennlp.data import Vocabulary
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.common.registrable import Registrable
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import Embedding, TextFieldEmbedder
-
-# Layers
-from allennlp.nn.util import get_text_field_mask
-
-# Inference
-from allennlp.predictors.predictor import Predictor
-
-# Training
-from allennlp.training.metrics import Perplexity
+from allennlp.modules import TextFieldEmbedder
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
-from src.count import config
-from src.count.data import WikiTextReader
 from src.count.decoders.base_decoder import Decoder
 from src.count.models.base_transformer import Transformer
 

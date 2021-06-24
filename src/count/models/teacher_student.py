@@ -4,45 +4,20 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-import numpy
-import torch
-
 # Torch transformer
+import torch
 import torch.nn as nn
 
 # AllenNLP
-from allennlp.data import Instance, Token, Vocabulary
-from allennlp.data.data_loaders import SimpleDataLoader
-from allennlp.data.fields import LabelField, TextField
+from allennlp.data import Vocabulary
 from allennlp.data.fields.text_field import TextFieldTensors
-from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import Embedding, TextFieldEmbedder
-
-# Layers
-from allennlp.modules.attention import Attention
-from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
-from allennlp.modules.transformer import TransformerLayer, TransformerStack
-from allennlp.modules.transformer.positional_encoding import SinusoidalPositionalEncoding
-from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
-from allennlp.nn.initializers import InitializerApplicator
-
-
-# Inference
-from allennlp.predictors.predictor import Predictor
-
-# Training
-from allennlp.training.metrics import Perplexity
-from allennlp.training.trainer import GradientDescentTrainer, Trainer
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
-from src.count import config
-from src.count.data import WikiTextReader
-from src.count.decoders.base_decoder import Decoder
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,135 @@
+# STL
+import logging
+import sys
+from pathlib import Path
+from typing import Dict
+
+import numpy
+import torch
+
+# Torch transformer
+import torch.nn as nn
+
+# AllenNLP
+from allennlp.data import Instance, Token, Vocabulary
+from allennlp.data.data_loaders import SimpleDataLoader
+from allennlp.data.fields import LabelField, TextField
+from allennlp.data.fields.text_field import TextFieldTensors
+from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
+
+# Models
+from allennlp.models import Model
+from allennlp.modules import Embedding, TextFieldEmbedder
+
+# Layers
+from allennlp.modules.attention import Attention
+from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.modules.transformer import TransformerLayer, TransformerStack
+from allennlp.modules.transformer.positional_encoding import SinusoidalPositionalEncoding
+from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
+from allennlp.nn.initializers import InitializerApplicator
+
+
+# Inference
+from allennlp.predictors.predictor import Predictor
+
+# Training
+from allennlp.training.metrics import Perplexity
+from allennlp.training.trainer import GradientDescentTrainer, Trainer
+
+sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+# Local
+from src.count import config
+from src.count.data import WikiTextReader
+from src.count.decoders.base_decoder import Decoder
+
+logger = logging.getLogger(__name__)
+
+
+@Model.register("teacher-student-language-model", exist_ok=True)
+class TeacherStudent(Model):
+    def __init__(
+        self,
+        vocab: Vocabulary,
+        student: Model,
+        teacher: Model,
+    ) -> None:
+        super().__init__(vocab)
+        self.student = student
+        self.teacher = teacher
+        self.teacher.eval()
+
+        self.kldiv = nn.KLDivLoss(reduction="mean")
+
+        logger.info("Number of parameters (teacher & student): %s", self.count_parameters())
+
+    def forward(
+        self,
+        tokens: TextFieldTensors,
+    ) -> Dict[str, torch.Tensor]:
+
+        student_output = self.student(tokens)
+        student_logits = student_output["logits"]
+        student_log_probs = torch.log_softmax(student_output["logits"], dim=-1)
+        student_loss = student_output["loss"]
+
+        preds = student_log_probs.view(-1, self.vocab_size)
+
+        if self.training:
+            with torch.no_grad():
+                teacher_output = self.teacher(tokens)
+                teacher_logits = teacher_output["logits"]
+                teacher_probs = torch.softmax(teacher_logits, dim=-1)
+
+                soft_labels = teacher_probs.view(-1, self.vocab_size)
+                teacher_loss = teacher_output["loss"]
+
+            loss = self.kldiv(preds, soft_labels)
+            logger.info("Teacher Loss: %s", teacher_loss.item())
+        else:
+            loss = student_loss
+
+        logger.info("Student (CE) Loss: %s", student_loss.item())
+        logger.info("KL Div Loss %s", loss.item())
+
+        return {
+            "logits": student_logits,
+            "loss": loss,
+            "log_probs": student_log_probs,
+            "student_loss": student_loss,
+        }
+
+    def make_output_human_readable(
+        self, output_dict: Dict[str, torch.Tensor]
+    ) -> Dict[str, torch.Tensor]:
+        """Takes logits from `forward` and computes the corresponding label
+
+        Arguments
+        ---------
+        output_dict : Dict[str, torch.Tensor]
+            Dictionary returned by `forward`. Must contain a key with `logits`.
+        Returns
+        -------
+        Dict[str, torch.Tensor]:
+            Same as input dictionary, but with another key `label` indicating the predicted label
+        """
+        return self.student.make_output_human_readable(output_dict)
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        return {"perplexity": self.metric.get_metric(reset)}
+
+    def count_parameters(self):
+        total = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        teacher_parameters = sum(p.numel() for p in self.teacher.parameters() if p.requires_grad)
+        total -= teacher_parameters
+        millions = total // 1_000_000
+        thousands = (total - millions * 1_000_000) // 1_000
+        string = str(millions) + "." + str(thousands) + "M"
+        return string
+
+    def init_weights(self, module):
+        if isinstance(module, (nn.Linear, nn.Embedding, nn.LayerNorm)):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+        if isinstance(module, (nn.Linear, nn.LayerNorm)) and module.bias is not None:
+            module.bias.data.zero_()

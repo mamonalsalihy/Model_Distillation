@@ -70,7 +70,12 @@ class TransformerDecoder(nn.Module):
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
-            target = layer(target, context, attn_mask, key_padding_mask)
+            target = layer(
+                target=target,
+                context=context,
+                attn_mask=attn_mask,
+                key_padding_mask=key_padding_mask,
+            )
 
         return target
 
@@ -104,12 +109,16 @@ class TransformerDecoderLayer(nn.Module):
 
         # attention
         self.self_attn = nn.MultiheadAttention(
-            embed_dim=input_dim, num_heads=num_attention_heads, dropout=dropout
+            embed_dim=input_dim,
+            num_heads=num_attention_heads,
+            dropout=dropout,
         )
 
         # FF network
         self.feedforward = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, input_dim)
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, input_dim),
         )
 
         # dropout

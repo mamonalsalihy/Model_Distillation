@@ -106,6 +106,7 @@ class TransformerDecoderLayer(nn.Module):
             embed_dim=input_dim,
             num_heads=num_attention_heads,
             dropout=dropout,
+            bias=False,
         )
 
         # FF network
@@ -121,6 +122,7 @@ class TransformerDecoderLayer(nn.Module):
         # norms
         self.norm_1 = nn.LayerNorm(input_dim, eps=1e-12)
         self.norm_2 = nn.LayerNorm(input_dim, eps=1e-12)
+        self.norm_3 = nn.LayerNorm(input_dim, eps=1e-12)
 
     def forward(
         self,
@@ -153,18 +155,18 @@ class TransformerDecoderLayer(nn.Module):
 
         # norm
         target = self.norm_1(target)
-        context = self.norm_1(context)
+        context = self.norm_2(context)
 
         # attention
-        attn_target, _ = self.self_attn(
-            key=target,
+        attn_target, _ = self.self_attn.forward(
+            query=target,
             value=context,
-            query=context,
+            key=context,
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
         )
         # add + norm
-        target = self.norm_2(target + attn_target).permute(1, 0, 2)
+        target = self.norm_3(target + attn_target).permute(1, 0, 2)
 
         # feedforward + dropout
         ff_target = self.dropout(self.feedforward(target))

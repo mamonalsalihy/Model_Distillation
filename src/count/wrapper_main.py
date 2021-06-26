@@ -29,7 +29,7 @@ from allennlp.predictors.predictor import Predictor
 
 # Training
 from allennlp.training.metrics import Perplexity
-from allennlp.training.trainer import GradientDescentTrainer, Trainer
+from allennlp.training import GradientDescentTrainer, Trainer
 
 # CLI
 from allennlp.commands import main
@@ -42,8 +42,6 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
-from src.count.models.student import StudentModel
-from src.count.models.new_student import NewStudentModel
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 
@@ -67,8 +65,10 @@ if __name__ == "__main__":
         "allennlp",  # command name, not used by main
         "train",
         config_file,
-        "-s", serialization_dir,
-        "--include-package", "src.count",
+        "-s",
+        serialization_dir,
+        "--include-package",
+        "src.count",
     ]
 
     main()

@@ -79,7 +79,7 @@ class Transformer(Model):
             (target_len, context_len),
             fill_value=-float("inf"),
             dtype=torch.float,
-        )
+        ).cuda()
         # Example mask for context_len=10 and target_len=4
         # 0 0 0 0 0 0 0 - - -
         # 0 0 0 0 0 0 0 0 - -
@@ -133,10 +133,10 @@ class Transformer(Model):
             target_emb = embeddings[:, 1:, :]  # shape: [B, N, D]
         else:
             target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
-            target_emb = embeddings[:, -1, :].unsqueze(1)  # shape: [B, 1, D]
+            target_emb = embeddings[:, -1, :].unsqueeze(1)  # shape: [B, 1, D]
 
         # Invert the result because we want True to indicate pad
-        key_mask = ~get_text_field_mask(source, padding_id=self.PAD_IDX)
+        key_mask = ~get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
 
         # Get logits
         # ==========

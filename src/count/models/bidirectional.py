@@ -3,6 +3,7 @@ import logging
 import sys
 import copy
 from pathlib import Path
+from typing import Dict
 
 # Torch transformer
 import torch
@@ -14,6 +15,7 @@ from allennlp.data import Vocabulary
 # Models
 from allennlp.models import Model
 from allennlp.modules import TextFieldEmbedder
+from allennlp.data import TextFieldTensors
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 

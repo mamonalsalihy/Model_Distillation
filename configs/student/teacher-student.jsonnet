@@ -1,5 +1,7 @@
 // Paths
+// local root = '/data/users/nilay/the-count/';
 local root = '/home/offendo/src/the-count/';
+local teacher_model = 'saved-experiments/test-teacher/model.tar.gz';
 
 // Training
 local context = 256;
@@ -13,9 +15,9 @@ local patience = 10;
 local dropout = 0.0;
 
 // Model config
-local num_layers = 8;
-local embedding_dim = 768;
-local hidden_dim = 768 * 4;
+local num_layers = 4;
+local embedding_dim = 384;
+local hidden_dim = 384 * 4;
 local num_attention_heads = 6;
 local activation = 'relu';
 
@@ -76,32 +78,34 @@ local eval_reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'simple-transformer-language-model',
-    embedding_dim: embedding_dim,
-    max_positions: context,
-    embedder: {
-      type: 'basic',
-      token_embedders: {
-        tokens: {
-          type: 'embedding',
-          embedding_dim: embedding_dim,
+    type: 'teacher-student-language-model',
+    student: {
+      type: 'simple-transformer-language-model',
+      embedding_dim: embedding_dim,
+      max_positions: context,
+      embedder: {
+        type: 'basic',
+        token_embedders: {
+          tokens: {
+            type: 'embedding',
+            embedding_dim: embedding_dim,
+          },
         },
       },
+      decoder: {
+        type: 'gpt2-transformer-decoder',
+        input_dim: embedding_dim,
+        hidden_dim: hidden_dim,
+        num_attention_heads: num_attention_heads,
+        num_layers: num_layers,
+        activation: activation,
+        dropout: dropout,
+      },
     },
-    decoder: {
-      type: 'gpt2-transformer-decoder',
-      input_dim: embedding_dim,
-      hidden_dim: hidden_dim,
-      num_attention_heads: num_attention_heads,
-      num_layers: num_layers,
-      activation: activation,
-      dropout: dropout,
+    teacher: {
+      type: 'from_archive',
+      archive_file: root + teacher_model,
     },
-    // initializer: {
-    //   regexes: [
-    //     ['.*weight', { type: 'xavier_normal' }],
-    //   ],
-    // },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
@@ -111,7 +115,7 @@ local eval_reader = {
     batch_size: batch_size,
     shuffle: true,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 0,
+    num_workers: 4,
     start_method: 'fork',
   },
   validation_data_loader: {
@@ -119,7 +123,7 @@ local eval_reader = {
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 0,
+    num_workers: 4,
     start_method: 'fork',
   },
   trainer: {
@@ -127,6 +131,7 @@ local eval_reader = {
     validation_metric: '-perplexity',
     num_epochs: epochs,
     patience: patience,
+    run_confidence_checks: false,
     optimizer: {
       type: 'adam',
       lr: lr,
@@ -136,7 +141,6 @@ local eval_reader = {
     //   type: 'cosine',
     //   t_initial: epochs,
     // },
-    run_confidence_checks: false,
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [

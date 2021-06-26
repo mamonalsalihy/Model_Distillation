@@ -33,6 +33,9 @@ class TeacherStudent(Model):
         super().__init__(vocab)
         self.student = student
         self.teacher = teacher
+
+        self.vocab = vocab
+        self.vocab_size = vocab.get_vocab_size()
         self.teacher.eval()
 
         self.kldiv = nn.KLDivLoss(reduction="mean")
@@ -61,12 +64,11 @@ class TeacherStudent(Model):
                 teacher_loss = teacher_output["loss"]
 
             loss = self.kldiv(preds, soft_labels)
-            logger.info("Teacher Loss: %s", teacher_loss.item())
+            # logger.info("Teacher Loss: %s", teacher_loss.item())
+            # logger.info("KL Div Loss %s", loss.item())
         else:
             loss = student_loss
-
-        logger.info("Student (CE) Loss: %s", student_loss.item())
-        logger.info("KL Div Loss %s", loss.item())
+            # logger.info("Student (CE) Loss: %s", student_loss.item())
 
         return {
             "logits": student_logits,
@@ -92,7 +94,7 @@ class TeacherStudent(Model):
         return self.student.make_output_human_readable(output_dict)
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"perplexity": self.metric.get_metric(reset)}
+        return {"perplexity": self.student.metric.get_metric(reset)}
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)

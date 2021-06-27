@@ -26,9 +26,7 @@ from allennlp.predictors.predictor import Predictor
 
 # Training
 from allennlp.training.metrics import Perplexity
-from allennlp.training.trainer import GradientDescentTrainer, Trainer
-
-import src.count.models.bidirection_transformer
+from allennlp.training import GradientDescentTrainer
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
@@ -37,10 +35,7 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
-from src.count.models.direction_transformer import DirectionTransformerLanguageModel
-from src.count.models.bidirection_transformer import BiDirectionTransformerLanguageModel
-from src.count.models.student import StudentModel
-from src.count.models.new_student import NewStudentModel
+from src.count.models.bidirectional import BidirectionalTransformer
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 
@@ -115,7 +110,7 @@ if __name__ == "__main__":
         activation=config.ACTIVATION,
     )
 
-    model = BiDirectionTransformerLanguageModel(
+    model = BidirectionalTransformer(
         vocab=vocab,
         embedder=embedder,
         decoder=decoder.to(config.DEVICE_1),

@@ -1,17 +1,11 @@
 # STL
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 # Torch
 import torch.nn as nn
 import torch
-
-# AllenNLP
-from allennlp.models import Model
-from allennlp.modules.feedforward import FeedForward
-from allennlp.modules.layer_norm import LayerNorm
-from allennlp.nn.activations import Activation
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
@@ -65,11 +59,17 @@ class TransformerDecoder(nn.Module):
     def forward(
         self,
         target: torch.Tensor,
+        context: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
-            target = layer(target, attn_mask, key_padding_mask)
+            target = layer(
+                target=target,
+                context=context,
+                attn_mask=attn_mask,
+                key_padding_mask=key_padding_mask,
+            )
 
         return target
 
@@ -103,12 +103,17 @@ class TransformerDecoderLayer(nn.Module):
 
         # attention
         self.self_attn = nn.MultiheadAttention(
-            embed_dim=input_dim, num_heads=num_attention_heads, dropout=dropout
+            embed_dim=input_dim,
+            num_heads=num_attention_heads,
+            dropout=dropout,
+            bias=False,
         )
 
         # FF network
         self.feedforward = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, input_dim)
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, input_dim),
         )
 
         # dropout
@@ -117,10 +122,12 @@ class TransformerDecoderLayer(nn.Module):
         # norms
         self.norm_1 = nn.LayerNorm(input_dim, eps=1e-12)
         self.norm_2 = nn.LayerNorm(input_dim, eps=1e-12)
+        self.norm_3 = nn.LayerNorm(input_dim, eps=1e-12)
 
     def forward(
         self,
         target: torch.Tensor,
+        context: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -129,7 +136,9 @@ class TransformerDecoderLayer(nn.Module):
         Arguments
         ---------
         target : torch.Tensor
-            Sequence of embeddings to decode, of shape `(batch_size, N, embedding_dim)`
+            Sequence of embeddings to decode, of shape `(batch_size, L, embedding_dim)`
+        context : torch.Tensor
+            Sequence of embeddings to attend to, of shape `(batch_size, S, embedding_dim)`
         attn_mask : torch.Tensor
             Binary matrix indicating which items in `target` to attend to (1) or ignore (0) at each
             timestep. Shape is `(batch_size, N, N)`
@@ -142,20 +151,22 @@ class TransformerDecoderLayer(nn.Module):
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
         target = target.permute(1, 0, 2)
+        context = context.permute(1, 0, 2)
 
         # norm
         target = self.norm_1(target)
+        context = self.norm_2(context)
 
         # attention
-        attn_target, _ = self.self_attn(
-            key=target,
-            value=target,
+        attn_target, _ = self.self_attn.forward(
             query=target,
+            value=context,
+            key=context,
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
         )
         # add + norm
-        target = self.norm_2(target + attn_target).permute(1, 0, 2)
+        target = self.norm_3(target + attn_target).permute(1, 0, 2)
 
         # feedforward + dropout
         ff_target = self.dropout(self.feedforward(target))

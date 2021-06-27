@@ -58,14 +58,15 @@ class LMInference:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("tokenizer")
+    parser.add_argument("archive_dir")
     args = parser.parse_args()
 
     tokenizer = WikiTextTokenizer(
         tokenizer_path=args.tokenizer,
         add_special_tokens=True,
     )
-    params = Params.from_file("/tmp/test/config.json")
-    model = Model.load(params, serialization_dir="/tmp/test/")
+    params = Params.from_file(Path(args.archive_dir) / "config.json")
+    model = Model.load(params, serialization_dir=args.archive_dir)
     inf = LMInference(model, tokenizer)
 
     print(inf.predict_continuation("In 1867, Andrew Jackson fought", 10))

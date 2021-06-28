@@ -5,7 +5,7 @@ local root = '/home/offendo/src/the-count/';
 local context = 256;
 local lr = 1e-3;
 local decay = 0.0;
-local batch_size = 4;
+local batch_size = 1;
 local max_instances = 16;
 local max_instances_memory = null;
 local epochs = 10;
@@ -13,10 +13,10 @@ local patience = 10;
 local dropout = 0.0;
 
 // Model config
-local num_layers = 8;
-local embedding_dim = 768;
-local hidden_dim = 768 * 4;
-local num_attention_heads = 6;
+local num_layers = 1;
+local embedding_dim = 128;
+local hidden_dim = 128 * 4;
+local num_attention_heads = 1;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];

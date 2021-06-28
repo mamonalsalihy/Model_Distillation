@@ -135,7 +135,7 @@ class Transformer(Model):
         else:
             target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
             target_emb = embeddings[:, -1, :].unsqueeze(1)  # shape: [B, 1, D]
-            query_emb = source_emb[-1:]
+            query_emb = source_emb[:, -1:, :]
 
         # Invert the result because we want True to indicate pad
         key_mask = ~get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]

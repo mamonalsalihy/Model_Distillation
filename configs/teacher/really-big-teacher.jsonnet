@@ -1,16 +1,16 @@
 // Paths
-local root = '/data/users/aukking/Model_Distillation/';
+local root = '/data/users/nilay/the-count/';
 
 // Training
 local context = 256;
-local lr = 1e-4;
+local lr = 2.5e-4;
 local decay = 0.1;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 100;
-local patience = 50;
-local dropout = 0.1;
+local patience = 10;
+local dropout = 0.2;
 
 // Model config
 local num_layers = 12;
@@ -20,7 +20,7 @@ local num_attention_heads = 12;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
-local cuda_device = 4;
+local cuda_device = 0;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -111,7 +111,7 @@ local eval_reader = {
     batch_size: batch_size,
     shuffle: true,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 4,
+    num_workers: 0,
     start_method: 'fork',
   },
   validation_data_loader: {
@@ -119,7 +119,7 @@ local eval_reader = {
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 4,
+    num_workers: 0,
     start_method: 'fork',
   },
   trainer: {

@@ -79,7 +79,7 @@ class Transformer(Model):
             (target_len, context_len),
             fill_value=-float("inf"),
             dtype=torch.float,
-        ).cuda()
+        ).to(self.lm_head.weight.device)
         # Example mask for context_len=10 and target_len=4
         # 0 0 0 0 0 0 0 - - -
         # 0 0 0 0 0 0 0 0 - -

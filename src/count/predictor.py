@@ -59,6 +59,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("tokenizer")
     parser.add_argument("archive_dir")
+    parser.add_argument("max")
     args = parser.parse_args()
 
     tokenizer = WikiTextTokenizer(
@@ -69,4 +70,4 @@ if __name__ == "__main__":
     model = Model.load(params, serialization_dir=args.archive_dir)
     inf = LMInference(model, tokenizer)
 
-    print(inf.predict_continuation("In 1867, Andrew Jackson fought", 10))
+    print(inf.predict_continuation("In 1867, Genghis Khan", int(args.max)))

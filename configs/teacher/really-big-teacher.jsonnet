@@ -127,6 +127,7 @@ local eval_reader = {
     validation_metric: '-perplexity',
     num_epochs: epochs,
     patience: patience,
+    run_sanity_checks: false,
     optimizer: {
       type: 'adam',
       lr: lr,

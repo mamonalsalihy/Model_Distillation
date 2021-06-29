@@ -3,19 +3,19 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local context = 256;
-local lr = 2.5e-4;
-local decay = 0.1;
+local lr = 5e-4;
+local decay = 0.00;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 100;
 local patience = 10;
-local dropout = 0.2;
+local dropout = 0.1;
 
 // Model config
 local num_layers = 12;
 local embedding_dim = 768;
-local hidden_dim = 768 * 4;
+local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 local activation = 'relu';
 
@@ -134,8 +134,9 @@ local eval_reader = {
       weight_decay: decay,
     },
     // learning_rate_scheduler: {
-    //   type: 'cosine',
-    //   t_initial: epochs,
+    //   type: 'linear_with_warmup',
+    //   num_epochs: epochs,
+    //   warmup_steps: 20000,
     // },
     cuda_device: cuda_device,
     grad_norm: 0.25,

@@ -91,26 +91,26 @@ class Transformer(Model):
 
     def _predict(
         self,
-        target_emb: torch.Tensor,
-        context_emb: torch.Tensor,
+        target: torch.Tensor,
         key_padding_mask: torch.Tensor,
     ):
         # Construct attention mask
         # =========================
-        context_len = context_emb.shape[1]
-        target_len = target_emb.shape[1]
-        attn_mask = self._make_attention_mask(target_len, context_len)
+        source_len = target.shape[1]
+        attn_mask = self._make_attention_mask(source_len, source_len)
 
         # Run through the decoder
         # =======================
         decoded = self.decoder(
-            target=target_emb,
-            context=context_emb,
+            target=target,
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
         )
         logits = self.lm_head(decoded)  # shape (batch_size, seq_len, vocab_size)
-        return logits
+        if self.training:
+            return logits
+        else:
+            return logits[:, -1:, :]  # only return last one
 
     def forward(
         self,
@@ -130,21 +130,19 @@ class Transformer(Model):
         source_emb = embeddings[:, :-1, :]
         if self.training:
             target = token_ids[:, 1:]  # shape: [B, N]
-            target_emb = embeddings[:, 1:, :]  # shape: [B, N, D]
-            query_emb = source_emb
+            only_predict_next = False
         else:
             target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
-            target_emb = embeddings[:, -1, :].unsqueeze(1)  # shape: [B, 1, D]
-            query_emb = source_emb[:, -1:, :]
+            only_predict_next = True
 
         # Invert the result because we want True to indicate pad
         key_mask = ~get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
 
         # Get logits
         # ==========
+        # shape: [B, L, D] (L = 1 if valid/testing, L = S if training)
         logits = self._predict(
-            target_emb=query_emb,
-            context_emb=source_emb,
+            target=source_emb,
             key_padding_mask=key_mask,
         )
 

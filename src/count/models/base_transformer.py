@@ -91,20 +91,21 @@ class Transformer(Model):
 
     def _predict(
         self,
-        target_emb: torch.Tensor,
+        # target_emb: torch.Tensor,
         context_emb: torch.Tensor,
         key_padding_mask: torch.Tensor,
     ):
         # Construct attention mask
         # =========================
         context_len = context_emb.shape[1]
-        target_len = target_emb.shape[1]
-        attn_mask = self._make_attention_mask(target_len, context_len)
+        # target_len = target_emb.shape[1]
+        # attn_mask = self._make_attention_mask(target_len, context_len)
+        attn_mask = self._make_attention_mask(context_len, context_len)
 
         # Run through the decoder
         # =======================
         decoded = self.decoder(
-            target=target_emb,
+            # target=target_emb,
             context=context_emb,
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
@@ -141,7 +142,7 @@ class Transformer(Model):
         # Get logits
         # ==========
         logits = self._predict(
-            target_emb=query_emb,
+            # target_emb=query_emb,
             context_emb=source_emb,
             key_padding_mask=key_mask,
         )

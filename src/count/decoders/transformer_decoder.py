@@ -125,7 +125,7 @@ class TransformerDecoderLayer(nn.Module):
 
     def forward(
         self,
-        target: torch.Tensor,
+        # target: torch.Tensor,
         context: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
@@ -149,16 +149,16 @@ class TransformerDecoderLayer(nn.Module):
         torch.Tensor :
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
-        target = target.permute(1, 0, 2)
+        # target = target.permute(1, 0, 2)
         context = context.permute(1, 0, 2)
 
         # norm
-        target = self.norm_1(target)
+        # target = self.norm_1(target)
         context = self.norm_1(context)
 
         # attention
         attn_target, _ = self.self_attn.forward(
-            query=target,
+            query=context,
             value=context,
             key=context,
             key_padding_mask=key_padding_mask,

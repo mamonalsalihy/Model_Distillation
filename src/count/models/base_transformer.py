@@ -127,8 +127,10 @@ class Transformer(Model):
         source_emb = embeddings[:, :-1, :]
         if self.training:
             target = token_ids[:, 1:]  # shape: [B, N]
+            only_predict_next = False
         else:
             target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
+            only_predict_next = True
 
         # Invert the result because we want True to indicate pad
         key_mask = ~get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
@@ -137,6 +139,7 @@ class Transformer(Model):
         # ==========
         logits = self._predict(
             qkv=source_emb,
+            only_predict_next=only_predict_next,
             key_padding_mask=key_mask,
         )
 

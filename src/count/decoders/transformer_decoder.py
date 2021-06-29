@@ -65,7 +65,7 @@ class TransformerDecoder(nn.Module):
     ):
         for layer in self.decoder_layers:
             qkv = layer(
-                target=qkv,
+                qkv=qkv,
                 attn_mask=attn_mask,
                 key_padding_mask=key_padding_mask,
             )

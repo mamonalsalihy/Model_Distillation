@@ -91,22 +91,18 @@ class Transformer(Model):
 
     def _predict(
         self,
-        # target_emb: torch.Tensor,
-        context_emb: torch.Tensor,
+        qkv: torch.Tensor,
         key_padding_mask: torch.Tensor,
     ):
         # Construct attention mask
         # =========================
-        context_len = context_emb.shape[1]
-        # target_len = target_emb.shape[1]
-        # attn_mask = self._make_attention_mask(target_len, context_len)
-        attn_mask = self._make_attention_mask(context_len, context_len)
+        source_len = qkv.shape[1]
+        attn_mask = self._make_attention_mask(source_len, source_len)
 
         # Run through the decoder
         # =======================
         decoded = self.decoder(
-            # target=target_emb,
-            context=context_emb,
+            qkv=qkv,
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
         )
@@ -131,10 +127,8 @@ class Transformer(Model):
         source_emb = embeddings[:, :-1, :]
         if self.training:
             target = token_ids[:, 1:]  # shape: [B, N]
-            query_emb = source_emb
         else:
             target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
-            query_emb = source_emb[:, -1:, :]
 
         # Invert the result because we want True to indicate pad
         key_mask = ~get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
@@ -142,8 +136,7 @@ class Transformer(Model):
         # Get logits
         # ==========
         logits = self._predict(
-            # target_emb=query_emb,
-            context_emb=source_emb,
+            qkv=source_emb,
             key_padding_mask=key_mask,
         )
 

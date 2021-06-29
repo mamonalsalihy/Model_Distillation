@@ -58,20 +58,23 @@ class TransformerDecoder(nn.Module):
 
     def forward(
         self,
-        target: torch.Tensor,
-        context: torch.Tensor,
+        qkv: torch.Tensor,
+        only_predict_next: bool = False,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
-            target = layer(
-                target=target,
-                context=context,
+            qkv = layer(
+                target=qkv,
                 attn_mask=attn_mask,
                 key_padding_mask=key_padding_mask,
             )
 
-        return target
+        # Only return the final value for validation/testing
+        if only_predict_next:
+            return qkv[:, -1:, :]
+        # Otherwise, return everything.
+        return qkv
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -125,8 +128,7 @@ class TransformerDecoderLayer(nn.Module):
 
     def forward(
         self,
-        # target: torch.Tensor,
-        context: torch.Tensor,
+        qkv: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -134,10 +136,8 @@ class TransformerDecoderLayer(nn.Module):
 
         Arguments
         ---------
-        target : torch.Tensor
+        qkv : torch.Tensor
             Sequence of embeddings to decode, of shape `(batch_size, L, embedding_dim)`
-        context : torch.Tensor
-            Sequence of embeddings to attend to, of shape `(batch_size, S, embedding_dim)`
         attn_mask : torch.Tensor
             Binary matrix indicating which items in `target` to attend to (1) or ignore (0) at each
             timestep. Shape is `(batch_size, N, N)`
@@ -149,29 +149,27 @@ class TransformerDecoderLayer(nn.Module):
         torch.Tensor :
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
-        # target = target.permute(1, 0, 2)
-        context = context.permute(1, 0, 2)
+        qkv = qkv.permute(1, 0, 2)
 
         # norm
-        # target = self.norm_1(target)
-        context = self.norm_1(context)
+        qkv = self.norm_1(qkv)
 
         # attention
         attn_target, _ = self.self_attn.forward(
-            query=context,
-            value=context,
-            key=context,
+            query=qkv,
+            value=qkv,
+            key=qkv,
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
         )
         # add + norm
-        target = self.norm_2(target + attn_target).permute(1, 0, 2)
+        qkv = self.norm_2(qkv + attn_target).permute(1, 0, 2)
 
         # feedforward + dropout
-        ff_target = self.dropout(self.feedforward(target))
+        ff_target = self.dropout(self.feedforward(qkv))
 
         # add
-        return target + ff_target
+        return qkv + ff_target
 
 
 if __name__ == "__main__":

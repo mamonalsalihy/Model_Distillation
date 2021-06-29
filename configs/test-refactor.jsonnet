@@ -4,19 +4,19 @@ local root = '/home/offendo/src/the-count/';
 // Training
 local context = 256;
 local lr = 1e-3;
-local decay = 0.0;
-local batch_size = 1;
-local max_instances = 16;
+local decay = 0.00;
+local batch_size = 4;
+local max_instances = 128 * batch_size;
 local max_instances_memory = null;
-local epochs = 10;
-local patience = 10;
+local epochs = 1000;
+local patience = 500;
 local dropout = 0.0;
 
 // Model config
 local num_layers = 1;
 local embedding_dim = 128;
-local hidden_dim = 128 * 4;
-local num_attention_heads = 1;
+local hidden_dim = embedding_dim * 4;
+local num_attention_heads = 4;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
@@ -127,16 +127,17 @@ local eval_reader = {
     validation_metric: '-perplexity',
     num_epochs: epochs,
     patience: patience,
+    run_sanity_checks: false,
     optimizer: {
       type: 'adam',
       lr: lr,
       weight_decay: decay,
     },
-    // learning_rate_scheduler: {
-    //   type: 'cosine',
-    //   t_initial: epochs,
-    // },
-    run_confidence_checks: false,
+    learning_rate_scheduler: {
+      type: 'linear_with_warmup',
+      num_epochs: epochs,
+      warmup_steps: 20000,
+    },
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [

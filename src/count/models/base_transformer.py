@@ -91,25 +91,26 @@ class Transformer(Model):
 
     def _predict(
         self,
-        qkv: torch.Tensor,
-        only_predict_next: bool,
+        target: torch.Tensor,
         key_padding_mask: torch.Tensor,
     ):
         # Construct attention mask
         # =========================
-        source_len = qkv.shape[1]
+        source_len = target.shape[1]
         attn_mask = self._make_attention_mask(source_len, source_len)
 
         # Run through the decoder
         # =======================
         decoded = self.decoder(
-            qkv=qkv,
-            only_predict_next=only_predict_next,
+            target=target,
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
         )
         logits = self.lm_head(decoded)  # shape (batch_size, seq_len, vocab_size)
-        return logits
+        if self.training:
+            return logits
+        else:
+            return logits[:, -1:, :]  # only return last one
 
     def forward(
         self,
@@ -139,9 +140,9 @@ class Transformer(Model):
 
         # Get logits
         # ==========
+        # shape: [B, L, D] (L = 1 if valid/testing, L = S if training)
         logits = self._predict(
-            qkv=source_emb,
-            only_predict_next=only_predict_next,
+            target=source_emb,
             key_padding_mask=key_mask,
         )
 

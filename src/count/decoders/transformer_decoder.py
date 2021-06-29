@@ -58,23 +58,18 @@ class TransformerDecoder(nn.Module):
 
     def forward(
         self,
-        qkv: torch.Tensor,
-        only_predict_next: bool = False,
+        target: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
-            qkv = layer(
-                qkv=qkv,
+            target = layer(
+                target=target,
                 attn_mask=attn_mask,
                 key_padding_mask=key_padding_mask,
             )
 
-        # Only return the final value for validation/testing
-        if only_predict_next:
-            return qkv[:, -1:, :]
-        # Otherwise, return everything.
-        return qkv
+        return target
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -109,7 +104,6 @@ class TransformerDecoderLayer(nn.Module):
             embed_dim=input_dim,
             num_heads=num_attention_heads,
             dropout=dropout,
-            bias=False,
         )
 
         # FF network
@@ -128,7 +122,7 @@ class TransformerDecoderLayer(nn.Module):
 
     def forward(
         self,
-        qkv: torch.Tensor,
+        target: torch.Tensor,
         attn_mask: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -149,27 +143,27 @@ class TransformerDecoderLayer(nn.Module):
         torch.Tensor :
             Decoded tensor of shape `(batch_size, N, embedding_dim)`
         """
-        qkv = qkv.permute(1, 0, 2)
+        target = target.permute(1, 0, 2)
 
         # norm
-        qkv = self.norm_1(qkv)
+        target = self.norm_1(target)
 
         # attention
-        attn_target, _ = self.self_attn.forward(
-            query=qkv,
-            value=qkv,
-            key=qkv,
+        attn, _ = self.self_attn.forward(
+            query=target,
+            value=target,
+            key=target,
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
         )
         # add + norm
-        qkv = self.norm_2(qkv + attn_target).permute(1, 0, 2)
+        target = self.norm_2(target + attn).permute(1, 0, 2)
 
         # feedforward + dropout
-        ff_target = self.dropout(self.feedforward(qkv))
+        ff_target = self.dropout(self.feedforward(target))
 
         # add
-        return qkv + ff_target
+        return target + ff_target
 
 
 if __name__ == "__main__":

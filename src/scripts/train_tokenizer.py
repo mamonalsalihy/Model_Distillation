@@ -4,6 +4,7 @@ from tokenizers import pre_tokenizers
 from tokenizers import processors
 from tokenizers import normalizers
 from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer, WordLevelTrainer
+from tokenizers import decoders
 
 # Local
 import sys
@@ -28,6 +29,7 @@ def train(
     if algorithm.lower() == "bpe":
         tokenizer = Tokenizer(BPE(unk_token=config.UNK))
         trainer = BpeTrainer(special_tokens=special_tokens, vocab_size=vocab_size)
+        tokenizer.decoder = decoders.BPEDecoder()
     elif algorithm.lower() == "unigram":
         tokenizer = Tokenizer(Unigram())
         trainer = UnigramTrainer(
@@ -36,6 +38,7 @@ def train(
     elif algorithm.lower() == "wordpiece":
         tokenizer = Tokenizer(WordPiece(unk_token=config.UNK))
         trainer = WordPieceTrainer(special_tokens=special_tokens, vocab_size=vocab_size)
+        tokenizer.decoder = decoders.WordPiece()
     elif algorithm.lower() == "wordlevel":
         tokenizer = Tokenizer(WordLevel(unk_token=config.UNK))
         trainer = WordLevelTrainer(special_tokens=special_tokens, vocab_size=vocab_size)
@@ -66,7 +69,7 @@ def train(
 
 
 if __name__ == "__main__":
-    ALGORITHM = "unigram"
+    ALGORITHM = "wordpiece"
     FILES = [os.path.join(config.WIKI_RAW_DIR, "wiki.train.raw")]
     OUTPUT = config.TOKENIZER
     VOCAB_SIZE = 30_000

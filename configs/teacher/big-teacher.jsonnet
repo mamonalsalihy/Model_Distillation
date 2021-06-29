@@ -27,7 +27,7 @@ local train_reader = {
   context: context,
   tokenizer: {
     type: 'wikitext-tokenizer',
-    tokenizer_path: root + 'unigram-tokenizer.json',
+    tokenizer_path: root + 'wordpiece-tokenizer.json',
     add_special_tokens: true,
   },
   token_indexers: {
@@ -49,7 +49,7 @@ local eval_reader = {
   context: context,
   tokenizer: {
     type: 'wikitext-tokenizer',
-    tokenizer_path: root + 'unigram-tokenizer.json',
+    tokenizer_path: root + 'wordpiece-tokenizer.json',
     add_special_tokens: true,
   },
   token_indexers: {

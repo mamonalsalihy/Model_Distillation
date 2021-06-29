@@ -92,6 +92,7 @@ class Transformer(Model):
     def _predict(
         self,
         qkv: torch.Tensor,
+        only_predict_next: bool,
         key_padding_mask: torch.Tensor,
     ):
         # Construct attention mask
@@ -103,6 +104,7 @@ class Transformer(Model):
         # =======================
         decoded = self.decoder(
             qkv=qkv,
+            only_predict_next=only_predict_next,
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
         )

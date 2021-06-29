@@ -130,11 +130,9 @@ class Transformer(Model):
         source_emb = embeddings[:, :-1, :]
         if self.training:
             target = token_ids[:, 1:]  # shape: [B, N]
-            target_emb = embeddings[:, 1:, :]  # shape: [B, N, D]
             query_emb = source_emb
         else:
             target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
-            target_emb = embeddings[:, -1, :].unsqueeze(1)  # shape: [B, 1, D]
             query_emb = source_emb[:, -1:, :]
 
         # Invert the result because we want True to indicate pad

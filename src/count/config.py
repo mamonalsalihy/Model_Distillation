@@ -12,7 +12,7 @@ import torch
 ROOT = str(Path(__file__).resolve().parents[2])
 
 # Paths
-TOKENIZER = os.path.join(ROOT, "unigram-tokenizer.json")
+TOKENIZER = os.path.join(ROOT, "wordpiece-tokenizer.json")
 DATA_DIR = os.path.join(ROOT, "data")
 VOCAB_DIR = os.path.join(ROOT, "data", "vocab")
 WIKI_RAW_DIR = os.path.join(ROOT, "data", "wikitext-103-raw")

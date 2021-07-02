@@ -127,6 +127,7 @@ local eval_reader = {
     },
     learning_rate_scheduler: {
       type: 'cosine_with_warmup',
+      num_warmup_steps: 14085 * epochs ,
       num_warmup_steps: 5000,
     },
     cuda_device: cuda_device,

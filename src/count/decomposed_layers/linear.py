@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class BlockLinear(nn.Module):
+class KLinear(nn.Module):
     def __init__(
         self,
         in_features: int,
@@ -71,6 +71,13 @@ class BlockLinear(nn.Module):
     def forward(self, x: torch.Tensor):
         return F.linear(x, self.weight, self.bias)
 
+    def count_parameters(self):
+        total = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        millions = total // 1_000_000
+        thousands = (total - millions * 1_000_000) // 1_000
+        string = str(millions) + "." + str(thousands) + "M"
+        return string
+
 
 def test():
     # Setup
@@ -79,7 +86,7 @@ def test():
     a = ((8, 16), (64, 128))
     b = ((32, 256), (16, 8))
     c = ((16, 32), (32, 64))
-    m = BlockLinear(in_features, out_features, rank=4, factor_sizes=[a, b, c], bias=False)
+    m = KLinear(in_features, out_features, rank=4, factor_sizes=[a, b, c], bias=False)
     optim = torch.optim.Adam(m.parameters(), lr=1e-1)
 
     # Compute

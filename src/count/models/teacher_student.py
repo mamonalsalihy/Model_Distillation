@@ -39,7 +39,7 @@ class TeacherStudent(Model):
         self.vocab = vocab
         self.vocab_size = vocab.get_vocab_size()
 
-        self.kldiv = nn.KLDivLoss(reduction="mean")
+        self.kldiv = nn.KLDivLoss(reduction="batchmean")
 
         if teacher_state_dict is not None:
             state_dict = torch.load(teacher_state_dict)

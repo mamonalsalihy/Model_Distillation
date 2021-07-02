@@ -1,3 +1,6 @@
+from collections import Counter
+from tqdm import tqdm
+
 # AllenNLP
 from allennlp.data import Vocabulary
 
@@ -7,9 +10,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.count import tokenizer, config
+from src.count.data import WikiTextReader
 
 
-if __name__ == "__main__":
+def from_tokenizer():
     wiki_tokenizer = tokenizer.WikiTextTokenizer(
         tokenizer_path=config.TOKENIZER,
         add_special_tokens=True,
@@ -35,3 +39,26 @@ if __name__ == "__main__":
 
     # Save the vocabulary to disk
     vocab.save_to_files(config.VOCAB_DIR)
+    return vocab
+
+
+def from_file():
+    counter = Counter()
+    with open("../../data/wikitext-103/wiki.train.tokens", "r") as f:
+        for line in tqdm(f):
+            line = line.replace("<unk>", "[UNK]")
+            line = line.replace("\n", "[SEP]")
+            counter.update(line.split())
+    vocab = Vocabulary({"tokens": counter}, padding_token=config.PAD, oov_token=config.UNK)
+    vocab.save_to_files("../../data/word-level-vocab/")
+    return vocab
+
+
+if __name__ == "__main__":
+    vocab = from_file()
+    # vocab = Vocabulary.from_files(
+    #     "../../data/word-level-vocab",
+    #     padding_token=config.PAD,
+    #     oov_token=config.UNK,
+    # )
+    print("Vocab size: ", vocab.get_vocab_size())

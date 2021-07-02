@@ -10,11 +10,11 @@ import torch.nn as nn
 
 # AllenNLP
 from allennlp.data import Vocabulary
-from allennlp.data.fields.text_field import TextFieldTensors
+from allennlp.data import TensorDict
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import TextFieldEmbedder
+from allennlp.modules import Embedding
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
@@ -30,32 +30,30 @@ class SimpleTransformerLanguageModel(Transformer):
     def __init__(
         self,
         vocab: Vocabulary,
-        embedder: TextFieldEmbedder,
+        embedder: Embedding,
+        pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
-        max_positions: int,
         backward: bool = False,
     ) -> None:
-        super().__init__(vocab, embedder, decoder, embedding_dim)
+        super().__init__(vocab, embedder, pos_embedder, decoder, embedding_dim)
 
-        self.pos_embedder = nn.Embedding(max_positions, embedding_dim)
         self.backward = backward
 
-    def _add_positional_embeddings(self, token_ids, embeddings):
-        positions = torch.arange(token_ids.shape[1], device=embeddings.device).unsqueeze(-1)
+    def _add_positional_embeddings(self, emb):
+        # emb: [S, B, D]
+        positions = torch.arange(len(emb), device=emb.device).unsqueeze(-1)
         # If we're going backwards, flip the positions around
         if self.backward:
             positions = torch.flip(positions, dims=[0])
-        pos_embeddings = self.pos_embedder(positions).permute(1, 0, 2).expand_as(embeddings)
-        return embeddings + pos_embeddings
+        emb = emb + self.pos_embedder(positions).expand_as(emb)
+        return emb
 
     def forward(
         self,
-        tokens: TextFieldTensors,
+        tokens: TensorDict,
     ) -> Dict[str, torch.Tensor]:
-        token_ids = tokens["tokens"]["tokens"]
-
         # Flip them around if it's backwards
         if self.backward:
-            tokens["tokens"]["tokens"] = torch.fliplr(token_ids)
+            tokens = torch.flip(tokens, dims=[1])  # shape: [B, S]
         return super().forward(tokens)

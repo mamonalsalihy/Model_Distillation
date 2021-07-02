@@ -2,21 +2,21 @@
 local root = '/home/offendo/src/the-count/';
 
 // Training
-local context = 256;
-local lr = 1e-3;
+local sequence_length = 256;
+local lr = 1e-2;
 local decay = 0.00;
-local batch_size = 4;
-local max_instances = 128 * batch_size;
+local batch_size = 12;
+local max_instances = null;
 local max_instances_memory = null;
 local epochs = 1000;
 local patience = 500;
 local dropout = 0.0;
 
 // Model config
-local num_layers = 1;
-local embedding_dim = 128;
+local num_layers = 16;
+local embedding_dim = 12;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 4;
+local num_attention_heads = 12;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
@@ -24,51 +24,21 @@ local cuda_device = 0;
 
 local train_reader = {
   type: 'wikitext-reader',
-  context: context,
-  tokenizer: {
-    type: 'wikitext-tokenizer',
-    tokenizer_path: root + 'wordpiece-tokenizer.json',
-    add_special_tokens: true,
-  },
-  token_indexers: {
-    tokens: {
-      type: 'single_id',
-      namespace: 'tokens',
-    },
-  },
-  exclusive: true,
-  split_on: 'paragraph',
-  min_context_len: 2,
+  sequence_length: sequence_length,
+  tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
-  manual_multiprocess_sharding: true,
-  manual_distributed_sharding: true,
 };
 
 local eval_reader = {
   type: 'wikitext-reader',
-  context: context,
-  tokenizer: {
-    type: 'wikitext-tokenizer',
-    tokenizer_path: root + 'wordpiece-tokenizer.json',
-    add_special_tokens: true,
-  },
-  token_indexers: {
-    tokens: {
-      type: 'single_id',
-      namespace: 'tokens',
-    },
-  },
-  exclusive: false,
-  eval: true,
-  split_on: 'paragraph',
-  min_context_len: 2,
+  sequence_length: sequence_length,
+  tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
-  manual_multiprocess_sharding: true,
-  manual_distributed_sharding: true,
 };
 
 {
   dataset_reader: train_reader,
+  validation_dataset_reader: eval_reader,
   vocabulary: {
     type: 'from_files',
     directory: root + 'data/vocab/',
@@ -78,15 +48,12 @@ local eval_reader = {
   model: {
     type: 'simple-transformer-language-model',
     embedding_dim: embedding_dim,
-    max_positions: context,
     embedder: {
-      type: 'basic',
-      token_embedders: {
-        tokens: {
-          type: 'embedding',
-          embedding_dim: embedding_dim,
-        },
-      },
+      embedding_dim: embedding_dim,
+    },
+    pos_embedder: {
+      embedding_dim: embedding_dim,
+      num_embeddings: sequence_length,
     },
     decoder: {
       type: 'gpt2-transformer-decoder',
@@ -94,18 +61,12 @@ local eval_reader = {
       hidden_dim: hidden_dim,
       num_attention_heads: num_attention_heads,
       num_layers: num_layers,
-      activation: activation,
       dropout: dropout,
     },
-    // initializer: {
-    //   regexes: [
-    //     ['.*weight', { type: 'xavier_normal' }],
-    //   ],
-    // },
   },
-  train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
-  validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
-  test_data_path: root + 'data/wikitext-103-raw/wiki.test.raw',
+  train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
+  validation_data_path: root + 'data/wikitext-103/wiki.valid.tokens',
+  test_data_path: root + 'data/wikitext-103/wiki.test.tokens',
   data_loader: {
     type: 'multiprocess',
     batch_size: batch_size,

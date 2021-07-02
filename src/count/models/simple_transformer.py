@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Torch
 import torch
@@ -34,16 +34,17 @@ class SimpleTransformerLanguageModel(Transformer):
         pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
-        backward: bool = False,
+        state_dict: Optional[str] = None,
+        backward: Optional[bool] = False,
     ) -> None:
-        super().__init__(vocab, embedder, pos_embedder, decoder, embedding_dim)
+        super().__init__(vocab, embedder, pos_embedder, decoder, embedding_dim, state_dict)
 
         self.backward = backward
 
     def _add_positional_embeddings(self, emb):
         # emb: [S, B, D]
         positions = torch.arange(len(emb), device=emb.device).unsqueeze(-1)
-        # If we're going backwards, flip the positions around
+        # If we're going backwards, flip the positions around since the tokens are also backwards.
         if self.backward:
             positions = torch.flip(positions, dims=[0])
         emb = emb + self.pos_embedder(positions).expand_as(emb)

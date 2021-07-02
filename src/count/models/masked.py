@@ -32,8 +32,9 @@ class MaskedLanguageModelTransformer(Transformer):
         pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
+        state_dict: Optional[str] = None,
     ) -> None:
-        super().__init__(vocab, embedder, pos_embedder, decoder, embedding_dim)
+        super().__init__(vocab, embedder, pos_embedder, decoder, embedding_dim, state_dict)
 
     def _make_attention_mask(self, emb):
         size = emb.size(0)

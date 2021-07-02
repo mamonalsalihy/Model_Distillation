@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy
 
@@ -42,6 +42,7 @@ class Transformer(Model):
         pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
+        state_dict: Optional[str] = None,
     ) -> None:
         super().__init__(vocab)
 
@@ -72,6 +73,11 @@ class Transformer(Model):
         logger.info("Number of parameters: %s", self.count_parameters())
         logger.info("Initializing...")
         self.apply(self.init_weights)
+
+        # load weights if necessary
+        if state_dict:
+            logger.info(f"Loading pretrained weights from {state_dict}...")
+            self.load_state_dict(torch.load(state_dict))
 
     def _add_positional_embeddings(self, emb):
         positions = torch.arange(len(emb), device=emb.device).unsqueeze(-1)

@@ -3,7 +3,7 @@ import logging
 import sys
 import copy
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Torch transformer
 import torch
@@ -35,8 +35,9 @@ class BidirectionalTransformer(Transformer):
         pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
+        state_dict: Optional[str] = None,
     ) -> None:
-        super().__init__(vocab, embedder, decoder, embedding_dim)
+        super().__init__(vocab, embedder, decoder, embedding_dim, state_dict)
         self.backward = False
 
     def _forward_helper(self, tokens: TensorDict):

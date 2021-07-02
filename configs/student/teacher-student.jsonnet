@@ -1,7 +1,6 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
-local teacher_model = 'saved-experiments/test-teacher/model.tar.gz';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
 local sequence_length = 256;
@@ -55,6 +54,7 @@ local eval_reader = {
     oov_token: '[UNK]',
   },
   model: {
+    type: 'teacher-student-language-model',
     student: {
       type: 'simple-transformer-language-model',
       embedding_dim: embedding_dim,

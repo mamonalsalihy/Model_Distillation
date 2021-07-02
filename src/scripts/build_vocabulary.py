@@ -55,7 +55,8 @@ def from_file():
 
 
 if __name__ == "__main__":
-    vocab = from_file()
+    # vocab = from_file()
+    vocab = from_tokenizer()
     # vocab = Vocabulary.from_files(
     #     "../../data/word-level-vocab",
     #     padding_token=config.PAD,

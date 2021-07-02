@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Torch transformer
 import torch
@@ -33,6 +33,7 @@ class TeacherStudent(Model):
     ) -> None:
         super().__init__(vocab)
 
+        self.teacher = teacher
         self.student = student
 
         self.vocab = vocab
@@ -40,13 +41,11 @@ class TeacherStudent(Model):
 
         self.kldiv = nn.KLDivLoss(reduction="mean")
 
-        logger.info("Number of parameters (student only): %s", self.count_parameters())
-
-        self.teacher = teacher
         if teacher_state_dict is not None:
             state_dict = torch.load(teacher_state_dict)
             self.teacher.load_state_dict(state_dict)
         self.teacher.eval()
+
         logger.info("Number of parameters (student only): %s", self.count_parameters())
 
     def forward(

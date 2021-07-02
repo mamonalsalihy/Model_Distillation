@@ -3,7 +3,7 @@ import logging
 import sys
 import copy
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Torch transformer
 import torch
@@ -14,8 +14,8 @@ from allennlp.data import Vocabulary
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import TextFieldEmbedder
-from allennlp.data import TextFieldTensors
+from allennlp.modules import Embedding
+from allennlp.data import TensorDict
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
@@ -31,29 +31,21 @@ class BidirectionalTransformer(Transformer):
     def __init__(
         self,
         vocab: Vocabulary,
-        embedder: TextFieldEmbedder,
+        embedder: Embedding,
+        pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
-        max_positions: int,
+        state_dict: Optional[str] = None,
     ) -> None:
-        super().__init__(vocab, embedder, decoder, embedding_dim)
-        self.pos_embedder = nn.Embedding(max_positions, embedding_dim)
+        super().__init__(vocab, embedder, decoder, embedding_dim, state_dict)
         self.backward = False
 
-    def _add_positional_embeddings(self, token_ids, embeddings):
-        positions = torch.arange(token_ids.shape[1], device=embeddings.device).unsqueeze(-1)
-        # if we're going backward, flip the positions since the tokens are also flipped
-        if self.backward:
-            positions = torch.flip(positions, dims=[0])
-        pos_embeddings = self.pos_embedder(positions).permute(1, 0, 2).expand_as(embeddings)
-        return embeddings + pos_embeddings
-
-    def _forward_helper(self, tokens: TextFieldTensors):
+    def _forward_helper(self, tokens: TensorDict):
         pass
 
     def forward(
         self,
-        tokens: TextFieldTensors,
+        tokens: TensorDict,
     ) -> Dict[str, torch.Tensor]:
         token_ids = tokens["tokens"]["tokens"]
 

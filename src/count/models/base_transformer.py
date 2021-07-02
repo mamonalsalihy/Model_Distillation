@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy
 
@@ -12,11 +12,11 @@ import torch.nn as nn
 
 # AllenNLP
 from allennlp.data import Vocabulary
-from allennlp.data.fields.text_field import TextFieldTensors
+from allennlp.data import TensorDict
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import TextFieldEmbedder
+from allennlp.modules import Embedding
 
 # Layers
 from allennlp.nn.util import get_text_field_mask
@@ -38,9 +38,11 @@ class Transformer(Model):
     def __init__(
         self,
         vocab: Vocabulary,
-        embedder: TextFieldEmbedder,
+        embedder: Embedding,
+        pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
+        state_dict: Optional[str] = None,
     ) -> None:
         super().__init__(vocab)
 
@@ -52,13 +54,14 @@ class Transformer(Model):
         # TransformerDecoder stuff
         # ========================
         self.embedder = embedder
+        self.pos_embedder = pos_embedder
         self.decoder = decoder
 
         # Language modeling head
         # ======================
         # linear layer that maps the last last transformer layer to logits for each word
         self.lm_head = torch.nn.Linear(embedding_dim, self.vocab_size, bias=False)
-        self.lm_head.weight = self.embedder._token_embedders["tokens"].weight
+        self.lm_head.weight = self.embedder.weight
 
         # Evaluation
         # ==========
@@ -71,87 +74,63 @@ class Transformer(Model):
         logger.info("Initializing...")
         self.apply(self.init_weights)
 
-    def _add_positional_embeddings(self, token_ids, embeddings):
-        raise NotImplementedError
+        # load weights if necessary
+        if state_dict:
+            logger.info(f"Loading pretrained weights from {state_dict}...")
+            self.load_state_dict(torch.load(state_dict))
 
-    def _make_attention_mask(self, target_len, context_len):
+    def _add_positional_embeddings(self, emb):
+        positions = torch.arange(len(emb), device=emb.device).unsqueeze(-1)
+        emb = emb + self.pos_embedder(positions).expand_as(emb)
+        return emb
+
+    def _make_attention_mask(self, emb: torch.Tensor) -> torch.Tensor:
+        size = emb.size(0)
         attn_mask = torch.full(
-            (target_len, context_len),
-            fill_value=-float("inf"),
-            dtype=torch.float,
-        ).to(self.lm_head.weight.device)
-        # Example mask for context_len=10 and target_len=4
-        # 0 0 0 0 0 0 0 - - -
-        # 0 0 0 0 0 0 0 0 - -
-        # 0 0 0 0 0 0 0 0 0 -
-        # 0 0 0 0 0 0 0 0 0 0
-        offset = context_len - target_len + 1
-        attn_mask = torch.triu(attn_mask, diagonal=offset)
+            (size, size),
+            -float("Inf"),
+            device=emb.device,
+            dtype=emb.dtype,
+        )
+        attn_mask = torch.triu(attn_mask, diagonal=1)
         return attn_mask
 
-    def _predict(
-        self,
-        target: torch.Tensor,
-        key_padding_mask: torch.Tensor,
-    ):
-        # Construct attention mask
-        # =========================
-        source_len = target.shape[1]
-        attn_mask = self._make_attention_mask(source_len, source_len)
-
-        # Run through the decoder
-        # =======================
-        decoded = self.decoder(
-            target=target,
-            attn_mask=attn_mask,
-            key_padding_mask=key_padding_mask,
-        )
+    def _predict(self, target: torch.Tensor):
+        # target: [S, B, D]
+        attn_mask = self._make_attention_mask(target)
+        decoded = self.decoder(target=target, attn_mask=attn_mask)
         logits = self.lm_head(decoded)  # shape (batch_size, seq_len, vocab_size)
-        if self.training:
-            return logits
-        else:
-            return logits[:, -1:, :]  # only return last one
+        return logits
 
     def forward(
         self,
-        tokens: TextFieldTensors,
+        tokens: TensorDict,
+        only_predict_next: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        # shape (batch_size, timesteps)
-        token_ids = tokens["tokens"]["tokens"]
+
+        tokens = tokens.transpose(0, 1)  # new shape [S+1, B]
+        source = tokens[:-1]  # [S, B]
+        labels = tokens[1:]  # [S, B]
 
         # Get embeddings
         # ==============
-        embeddings = self.embedder(tokens)
-        embeddings = self._add_positional_embeddings(token_ids, embeddings)
+        embeddings = self.embedder(source)  # shape: [S, B, D]
+        embeddings = self._add_positional_embeddings(embeddings)
 
-        # Get source and target
-        # =====================
-        source = token_ids[:, :-1]
-        source_emb = embeddings[:, :-1, :]
-        if self.training:
-            target = token_ids[:, 1:]  # shape: [B, N]
-            only_predict_next = False
-        else:
-            target = token_ids[:, -1].unsqueeze(1)  # shape: [B, 1]
-            only_predict_next = True
+        # Make prediction
+        # ===============
+        logits = self._predict(embeddings)
 
-        # Invert the result because we want True to indicate pad
-        key_mask = ~get_text_field_mask(tokens, padding_id=self.PAD_IDX)[:, :-1]
-
-        # Get logits
-        # ==========
-        # shape: [B, L, D] (L = 1 if valid/testing, L = S if training)
-        logits = self._predict(
-            target=source_emb,
-            key_padding_mask=key_mask,
-        )
+        if only_predict_next:  # inference; only care about final value
+            logits = logits[-1:]  # shapes: [1, B]
+            labels = labels[-1:]
 
         # Calculate loss
         # ==============
         preds = logits.reshape(-1, self.vocab_size)
-        reals = target.reshape(-1)
-
+        reals = labels.reshape(-1)
         loss = self.loss(preds, reals)
+
         self.metric(loss)
         return {"logits": logits, "loss": loss}
 
@@ -172,6 +151,7 @@ class Transformer(Model):
         # Take the logits from the forward pass, and compute the label IDs for maximum values
         logits = output_dict["logits"].cpu().data.numpy()
         predicted_id = numpy.argmax(logits, axis=-1)
+
         # Convert these IDs back to label strings using vocab
         output_dict["label"] = [
             self.vocab.get_token_from_index(x, namespace="tokens") for x in predicted_id
@@ -179,7 +159,9 @@ class Transformer(Model):
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"perplexity": self.metric.get_metric(reset)}
+        return {
+            "perplexity": self.metric.get_metric(reset),
+        }
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)

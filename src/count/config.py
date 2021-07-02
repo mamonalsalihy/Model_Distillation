@@ -16,6 +16,7 @@ TOKENIZER = os.path.join(ROOT, "wordpiece-tokenizer.json")
 DATA_DIR = os.path.join(ROOT, "data")
 VOCAB_DIR = os.path.join(ROOT, "data", "vocab")
 WIKI_RAW_DIR = os.path.join(ROOT, "data", "wikitext-103-raw")
+WIKI_DIR = os.path.join(ROOT, "data", "wikitext-103")
 SRC_DIR = os.path.join(ROOT, "src")
 
 # Parameters

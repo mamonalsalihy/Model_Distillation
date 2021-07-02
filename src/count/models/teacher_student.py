@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Torch transformer
 import torch
@@ -10,7 +10,7 @@ import torch.nn as nn
 
 # AllenNLP
 from allennlp.data import Vocabulary
-from allennlp.data.fields.text_field import TextFieldTensors
+from allennlp.data import TensorDict
 
 # Models
 from allennlp.models import Model
@@ -29,22 +29,28 @@ class TeacherStudent(Model):
         vocab: Vocabulary,
         student: Model,
         teacher: Model,
+        teacher_state_dict: Optional[str] = None,
     ) -> None:
         super().__init__(vocab)
-        self.student = student
+
         self.teacher = teacher
+        self.student = student
 
         self.vocab = vocab
         self.vocab_size = vocab.get_vocab_size()
+
+        self.kldiv = nn.KLDivLoss(reduction="batchmean")
+
+        if teacher_state_dict is not None:
+            state_dict = torch.load(teacher_state_dict)
+            self.teacher.load_state_dict(state_dict)
         self.teacher.eval()
 
-        self.kldiv = nn.KLDivLoss(reduction="mean")
-
-        logger.info("Number of parameters (teacher & student): %s", self.count_parameters())
+        logger.info("Number of parameters (student only): %s", self.count_parameters())
 
     def forward(
         self,
-        tokens: TextFieldTensors,
+        tokens: TensorDict,
     ) -> Dict[str, torch.Tensor]:
 
         student_output = self.student(tokens)

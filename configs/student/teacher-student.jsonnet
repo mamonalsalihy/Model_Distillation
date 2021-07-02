@@ -5,7 +5,7 @@ local teacher_model = 'saved-experiments/test-teacher/model.tar.gz';
 
 // Training
 local sequence_length = 256;
-local lr = 1e-3;
+local lr = 2.5e-4;
 local decay = 0.0;
 local batch_size = 32;
 local max_instances = null;
@@ -125,13 +125,10 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    // learning_rate_scheduler: {
-    //   type: 'cosine_with_warmup',
-    //   num_epochs: epochs,
-    //   start_value: lr,
-    //   end_value: 0.0,
-    //   warmup_steps: 5000,
-    // },
+    learning_rate_scheduler: {
+      type: 'cosine_with_warmup',
+      num_warmup_steps: 5000,
+    },
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [

@@ -47,6 +47,7 @@ class WikiTextReader(DatasetReader):
         tokenizer_path: str,
         token_indexers: Dict[str, TokenIndexer] = None,
         exclusive: bool = True,
+        lstm: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -54,6 +55,7 @@ class WikiTextReader(DatasetReader):
         self.tokenizer = Tokenizer.from_file(tokenizer_path)
         self.token_indexers = token_indexers
         self.exclusive = exclusive
+        self.lstm = lstm
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         cache = Path(f"{file_path}.cache")
@@ -93,11 +95,20 @@ class WikiTextReader(DatasetReader):
         yield from self.tensor_to_instances(dataset["subwords"])
 
     def tensor_to_instances(self, subwords: torch.Tensor):
-        num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length
-        sequences = subwords.narrow(0, 0, num_sequences).view(-1, self.sequence_length)
-        logger.info("Yielding...")
-        for inst in sequences:
-            yield Instance({"tokens": TensorField(inst)})
+        if self.lstm:
+            eos_idx = self.tokenizer.token_to_id("[SEP]")
+            sequence_indices = (subwords == eos_idx).nonzero()
+            start = 0
+            for i, end in enumerate(sequence_indices):
+                seq = subwords[start : end + 1]
+                yield Instance({"tokens": TensorField(seq)})
+                start = end + 1
+        else:
+            num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length
+            sequences = subwords.narrow(0, 0, num_sequences).view(-1, self.sequence_length)
+            logger.info("Yielding...")
+            for inst in sequences:
+                yield Instance({"tokens": TensorField(inst)})
 
     def text_to_instance(
         self,
@@ -115,14 +126,20 @@ class WikiTextReader(DatasetReader):
 
 if __name__ == "__main__":
     reader = WikiTextReader(
-        sequence_length=128, tokenizer_path=config.TOKENIZER, max_instances=None
+        sequence_length=128,
+        tokenizer_path=config.TOKENIZER,
+        max_instances=None,
+        lstm=True,
     )
 
     loader = MultiProcessDataLoader(
-        reader, data_path=os.path.join(config.WIKI_DIR, "wiki.test.tokens"), batch_size=32
+        reader,
+        data_path=os.path.join(config.WIKI_DIR, "wiki.test.tokens"),
+        batch_size=32,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
     loader.index_with(vocab)
     print("Ready...")
     for i in tqdm(loader):
-        pass
+        print(i["tokens"])
+        input()

@@ -24,8 +24,11 @@ local teacher_num_layers = 8;
 local teacher_embedding_dim = 512;
 local teacher_hidden_dim = teacher_embedding_dim * 4;
 local teacher_num_attention_heads = 8;
-
 local teacher_weights = '/data/users/nilay/the-count/saved-experiments/40M-model/best.th';
+
+// Hyper params
+local temperature = 3;
+local hard_label_weight = 0.2;
 
 local cuda_devices = [1, 2];
 local cuda_device = 0;
@@ -55,6 +58,8 @@ local eval_reader = {
   },
   model: {
     type: 'teacher-student-language-model',
+    temperature: temperature,
+    hard_label_weight: hard_label_weight,
     student: {
       type: 'simple-transformer-language-model',
       embedding_dim: embedding_dim,

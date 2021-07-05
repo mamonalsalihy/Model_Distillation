@@ -14,18 +14,21 @@ local patience = 10;
 local dropout = 0.1;
 
 // Student
-local num_layers = 4;
-local embedding_dim = 256;
+local num_layers = 6;
+local embedding_dim = 384;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
+local num_attention_heads = 12;
 
 // Teacher
 local teacher_num_layers = 16;
 local teacher_embedding_dim = 768;
 local teacher_hidden_dim = teacher_embedding_dim * 4;
 local teacher_num_attention_heads = 12;
-
 local teacher_weights = '/data/users/nilay/redo-the-count/logs/new_model_weights.pt';
+
+// Hyper params
+local temperature = 3;
+local hard_label_weight = 0.2;
 
 local cuda_devices = [1, 2];
 local cuda_device = 0;
@@ -55,6 +58,8 @@ local eval_reader = {
   },
   model: {
     type: 'teacher-student-language-model',
+    temperature: temperature,
+    hard_label_weight: hard_label_weight,
     student: {
       type: 'simple-transformer-language-model',
       embedding_dim: embedding_dim,

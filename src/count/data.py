@@ -95,6 +95,7 @@ class WikiTextReader(DatasetReader):
         yield from self.tensor_to_instances(dataset["subwords"])
 
     def tensor_to_instances(self, subwords: torch.Tensor):
+        logger.info("Building instances...")
         if self.lstm:
             eos_idx = self.tokenizer.token_to_id("[SEP]")
             sequence_indices = (subwords == eos_idx).nonzero()
@@ -103,11 +104,15 @@ class WikiTextReader(DatasetReader):
                 seq = subwords[start : end + 1]
                 yield Instance({"tokens": TensorField(seq)})
                 start = end + 1
-        else:
+        elif self.exclusive:
             num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length
             sequences = subwords.narrow(0, 0, num_sequences).view(-1, self.sequence_length)
-            logger.info("Yielding...")
             for inst in sequences:
+                yield Instance({"tokens": TensorField(inst)})
+        else:
+            for end_idx in range(1, len(subwords)):
+                start_idx = max(0, end_idx - self.sequence_length)
+                inst = subwords[start_idx : end_idx + 1]
                 yield Instance({"tokens": TensorField(inst)})
 
     def text_to_instance(
@@ -126,16 +131,17 @@ class WikiTextReader(DatasetReader):
 
 if __name__ == "__main__":
     reader = WikiTextReader(
-        sequence_length=128,
+        sequence_length=4,
         tokenizer_path=config.TOKENIZER,
         max_instances=None,
-        lstm=True,
+        lstm=False,
+        exclusive=False,
     )
 
     loader = MultiProcessDataLoader(
         reader,
         data_path=os.path.join(config.WIKI_DIR, "wiki.test.tokens"),
-        batch_size=32,
+        batch_size=2,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
     loader.index_with(vocab)

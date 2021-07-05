@@ -40,6 +40,7 @@ class TeacherStudent(Model):
 
         self.vocab = vocab
         self.vocab_size = vocab.get_vocab_size()
+        self.temp = temperature
         self.hard_label_weight = hard_label_weight
 
         self.kldiv = nn.KLDivLoss(reduction="batchmean")

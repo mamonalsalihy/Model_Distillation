@@ -29,6 +29,8 @@ class TeacherStudent(Model):
         vocab: Vocabulary,
         student: Model,
         teacher: Model,
+        hard_label_weight: float = 0.0,
+        temperature: float = 3,
         teacher_state_dict: Optional[str] = None,
     ) -> None:
         super().__init__(vocab)
@@ -38,6 +40,7 @@ class TeacherStudent(Model):
 
         self.vocab = vocab
         self.vocab_size = vocab.get_vocab_size()
+        self.hard_label_weight = hard_label_weight
 
         self.kldiv = nn.KLDivLoss(reduction="batchmean")
 
@@ -48,6 +51,17 @@ class TeacherStudent(Model):
 
         logger.info("Number of parameters (student only): %s", self.count_parameters())
 
+    def kl_loss(self, student_logits, teacher_logits):
+        # Divide by temperature
+        s = student_logits / self.temp
+        t = teacher_logits / self.temp
+
+        # Get log probs for predictions & probs for labels
+        log_probs = torch.log_softmax(s, dim=-1).view(-1, self.vocab_size)
+        soft_labels = torch.softmax(t, dim=-1).view(-1, self.vocab_size)
+
+        return self.kldiv(log_probs, soft_labels)
+
     def forward(
         self,
         tokens: TensorDict,
@@ -55,32 +69,23 @@ class TeacherStudent(Model):
 
         student_output = self.student(tokens)
         student_logits = student_output["logits"]
-        student_log_probs = torch.log_softmax(student_output["logits"], dim=-1)
-        student_loss = student_output["loss"]
-
-        preds = student_log_probs.view(-1, self.vocab_size)
+        ce_loss = student_output["loss"]
 
         if self.training:
             with torch.no_grad():
                 teacher_output = self.teacher(tokens)
                 teacher_logits = teacher_output["logits"]
-                teacher_probs = torch.softmax(teacher_logits, dim=-1)
 
-                soft_labels = teacher_probs.view(-1, self.vocab_size)
-                teacher_loss = teacher_output["loss"]
-
-            loss = self.kldiv(preds, soft_labels)
-            # logger.info("Teacher Loss: %s", teacher_loss.item())
-            # logger.info("KL Div Loss %s", loss.item())
+            # Calculate KL divergence loss
+            kl_loss = self.kl_loss(student_logits, teacher_logits)
+            loss = (1 - self.hard_label_weight) * kl_loss + self.hard_label_weight * ce_loss
         else:
-            loss = student_loss
-            # logger.info("Student (CE) Loss: %s", student_loss.item())
+            loss = ce_loss
 
         return {
             "logits": student_logits,
             "loss": loss,
-            "log_probs": student_log_probs,
-            "student_loss": student_loss,
+            "student_loss": ce_loss,
         }
 
     def make_output_human_readable(

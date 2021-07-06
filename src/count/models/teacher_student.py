@@ -61,7 +61,8 @@ class TeacherStudent(Model):
         log_probs = torch.log_softmax(s, dim=-1).view(-1, self.vocab_size)
         soft_labels = torch.softmax(t, dim=-1).view(-1, self.vocab_size)
 
-        return self.kldiv(log_probs, soft_labels)
+        # => T^2 * KL(x, y)
+        return (self.temp ** 2) * self.kldiv(log_probs, soft_labels)
 
     def forward(
         self,

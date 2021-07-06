@@ -153,9 +153,10 @@ class Transformer(Model):
         predicted_id = numpy.argmax(logits, axis=-1)
 
         # Convert these IDs back to label strings using vocab
-        output_dict["label"] = [
-            self.vocab.get_token_from_index(x, namespace="tokens") for x in predicted_id
+        output_dict["tokens"] = [
+            self.vocab.get_token_from_index(x, namespace="tokens") for x in predicted_id.ravel()
         ]
+        output_dict["token_ids"] = list(predicted_id.ravel())
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

@@ -9,8 +9,8 @@ local decay = 0.0;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 30;
-local patience = 10;
+local epochs = 50;
+local patience = 3;
 local dropout = 0.1;
 
 // Student

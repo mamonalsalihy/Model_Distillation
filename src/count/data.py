@@ -120,8 +120,8 @@ class WikiTextReader(DatasetReader):
         tokens: List[str],
         num_words: int,
     ) -> Instance:
-        tokens = [Token(t) for t in tokens]
-        return Instance({"tokens": TextField(tokens), "num_words": MetadataField(num_words)})
+        tokens = self.tokenizer.encode(tokens).ids
+        return Instance({"tokens": TensorField(tokens)})
 
     def apply_token_indexers(self, instance) -> None:
         """Adds a token indexer to the instance. Automatically called by AllenNLP."""

@@ -107,7 +107,6 @@ class Transformer(Model):
         tokens: TensorDict,
         only_predict_next: bool = False,
     ) -> Dict[str, torch.Tensor]:
-
         tokens = tokens.transpose(0, 1)  # new shape [S+1, B]
         source = tokens[:-1]  # [S, B]
         labels = tokens[1:]  # [S, B]

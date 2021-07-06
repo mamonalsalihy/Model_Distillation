@@ -9,12 +9,14 @@ import torch
 # AllenNLP
 from allennlp.models import Model
 from allennlp.common import Params
-from allennlp.data.fields import Field, TextField
+from allennlp.data.fields import Field, TextField, TensorField
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.instance import Instance
 from allennlp.data.tokenizers.tokenizer import Tokenizer
 from allennlp.data import Vocabulary
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+
+from tokenizers import Tokenizer
 
 # Local
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -30,27 +32,20 @@ class LMInference:
     def __init__(self, model: Model, tokenizer: Tokenizer):
         self.model = model
         self.tokenizer = tokenizer
-        self.indexer = {"tokens": SingleIdTokenIndexer(namespace="tokens")}
 
         # only for evaluation
         self.model.eval()
 
-    def _make_instance(self, tokens):
-        instance = Instance({"tokens": TextField(tokens)})
-        instance["tokens"].token_indexers = self.indexer
-        return instance
-
     def predict_continuation(self, text: str, n: int):
-        new_text = text
+        ids = self.tokenizer.encode(text).ids[:-1]
         for i in range(n):
-            tokens = self.tokenizer.tokenize(new_text)
-            ids = self.indexer["tokens"].tokens_to_indices(tokens, self.model.vocab)["tokens"]
-            instance = self._make_instance(tokens)
+            x = torch.tensor(ids, dtype=torch.long, device="cpu").view(1, -1)
             with torch.no_grad():
-                output = self.model.forward_on_instance(instance)
-            new_ids = output["token_ids"]
-            ids.append(int(new_ids))
-            new_text = self.tokenizer.tokenizer.decode(ids)
+                output = self.model.forward(x, only_predict_next=True)
+            output = self.model.make_output_human_readable(output)
+            new_ids = list(output["token_ids"])
+            ids.append(new_ids[-1])
+        new_text = self.tokenizer.decode(ids)
 
         return new_text
 
@@ -62,12 +57,10 @@ if __name__ == "__main__":
     parser.add_argument("max")
     args = parser.parse_args()
 
-    tokenizer = WikiTextTokenizer(
-        tokenizer_path=args.tokenizer,
-        add_special_tokens=True,
-    )
+    tokenizer = Tokenizer.from_file(args.tokenizer)
     params = Params.from_file(Path(args.archive_dir) / "config.json")
     model = Model.load(params, serialization_dir=args.archive_dir)
     inf = LMInference(model, tokenizer)
 
-    print(inf.predict_continuation("In 1867, Genghis Khan", int(args.max)))
+    print(inf.predict_continuation("Super Mario Bros. is a platform game", int(args.max)))
+    # print(tokenizer.decode([2,  8562, 26606,  6591,  6617]))

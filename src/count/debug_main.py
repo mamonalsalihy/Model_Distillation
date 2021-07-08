@@ -5,6 +5,7 @@ import sys
 from itertools import islice
 from pathlib import Path
 
+import allennlp.training.learning_rate_schedulers.learning_rate_scheduler
 import numpy
 import numpy as np
 import torch
@@ -27,6 +28,7 @@ from allennlp.predictors.predictor import Predictor
 # Training
 from allennlp.training.metrics import Perplexity
 from allennlp.training import GradientDescentTrainer
+from allennlp.training.learning_rate_schedulers.learning_rate_scheduler import ConstantWithWarmupLearningRateScheduler
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
@@ -35,7 +37,6 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
-from src.count.models.bidirectional import BidirectionalTransformer
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 
@@ -110,13 +111,17 @@ if __name__ == "__main__":
         activation=config.ACTIVATION,
     )
 
-    model = BidirectionalTransformer(
+    model = SimpleTransformerLanguageModel(
         vocab=vocab,
         embedder=embedder,
         decoder=decoder.to(config.DEVICE_1),
         embedding_dim=config.EMBEDDING_DIMENSION,
         max_positions=config.CONTEXT_WINDOW,
+        backward=True,
     )
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
+    scheduler = ConstantWithWarmupLearningRateScheduler(optimizer=optimizer, num_warmup_steps=config.WARMUP_STEPS)
 
     trainer = GradientDescentTrainer(
         model=model.to(config.DEVICE_1),
@@ -125,8 +130,9 @@ if __name__ == "__main__":
         validation_data_loader=val_data_loader,
         num_epochs=config.NUM_EPOCHS,
         patience=config.PATIENCE,
-        optimizer=torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE),
+        optimizer=optimizer,
         cuda_device=config.DEVICE_1,
+        learning_rate_scheduler=scheduler,
     )
 
     # note, count_parmeters now returns a string for easier readability

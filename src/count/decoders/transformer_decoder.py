@@ -61,6 +61,7 @@ class TransformerDecoder(nn.Module):
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
+            print(target)
             target = layer(
                 target=target,
                 attn_mask=attn_mask,

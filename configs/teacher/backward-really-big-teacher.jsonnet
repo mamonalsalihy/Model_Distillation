@@ -1,15 +1,15 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
+local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
 local lr = 2.5e-4;
 local decay = 0.00;
 local batch_size = 32;
-local max_instances = 1024;
+local max_instances = null;
 local max_instances_memory = null;
-local epochs = 30;
-local patience = 5;
+local epochs = 50;
+local patience = 10;
 local dropout = 0.1;
 
 // Model config
@@ -100,7 +100,7 @@ local eval_reader = {
     //   num_training_steps: 14085 * epochs,
     //   num_warmup_steps: 5000,
     // },
-    cuda_device: cuda_device,
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -108,7 +108,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

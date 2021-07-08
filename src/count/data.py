@@ -117,11 +117,11 @@ class WikiTextReader(DatasetReader):
 
     def text_to_instance(
         self,
-        tokens: List[str],
-        num_words: int,
+        text: str,
     ) -> Instance:
-        tokens = [Token(t) for t in tokens]
-        return Instance({"tokens": TextField(tokens), "num_words": MetadataField(num_words)})
+        tokens = torch.tensor(self.tokenizer(text).ids, dtype=torch.long)
+        num_words = len(text.split())
+        return Instance({"tokens": TensorField(tokens)})
 
     def apply_token_indexers(self, instance) -> None:
         """Adds a token indexer to the instance. Automatically called by AllenNLP."""
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     loader = MultiProcessDataLoader(
         reader,
-        data_path=os.path.join(config.WIKI_DIR, "wiki.test.tokens"),
+        data_path=os.path.join(config.WIKI_DIR, "wiki.valid.tokens"),
         batch_size=2,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
@@ -149,3 +149,7 @@ if __name__ == "__main__":
     for i in tqdm(loader):
         print(i["tokens"])
         input()
+
+    # Valid ratio: 1.1494
+    # Test ratio: 1.1537
+    # Train ratio: 1.1633

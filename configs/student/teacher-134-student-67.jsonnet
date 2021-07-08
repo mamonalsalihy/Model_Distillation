@@ -13,11 +13,12 @@ local epochs = 50;
 local patience = 3;
 local dropout = 0.1;
 
-// Student
-local num_layers = 8;
-local embedding_dim = 512;
+// Model config
+local num_layers = 6;
+local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
+local num_attention_heads = 12;
+local activation = 'relu';
 
 local teacher_model = '/saved-experiments/138M-model/';
 

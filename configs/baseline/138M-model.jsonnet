@@ -1,31 +1,25 @@
 // Paths
 local root = '/data/users/nilay/the-count/';
-// local root = '/home/offendo/src/the-count/';
 
 // Training
 local sequence_length = 256;
 local lr = 2.5e-4;
-local decay = 0.0;
+local decay = 0.00;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
+local cosine_epochs = 49;
 local patience = 3;
 local dropout = 0.1;
 
-// Student
-local num_layers = 8;
-local embedding_dim = 512;
+// Model config
+local num_layers = 16;
+local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
+local num_attention_heads = 12;
 
-local teacher_model = '/saved-experiments/138M-model/';
-
-// Hyper params
-local temperature = 3;
-local hard_label_weight = 0.2;
-
-local cuda_devices = [1, 2];
+local cuda_devices = [0, 1];
 local cuda_device = 0;
 
 local train_reader = {
@@ -52,31 +46,22 @@ local eval_reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'teacher-student-language-model',
-    temperature: temperature,
-    hard_label_weight: hard_label_weight,
-    student: {
-      type: 'simple-transformer-language-model',
+    type: 'simple-transformer-language-model',
+    embedding_dim: embedding_dim,
+    embedder: {
       embedding_dim: embedding_dim,
-      embedder: {
-        embedding_dim: embedding_dim,
-      },
-      pos_embedder: {
-        embedding_dim: embedding_dim,
-        num_embeddings: sequence_length,
-      },
-      decoder: {
-        type: 'gpt2-transformer-decoder',
-        input_dim: embedding_dim,
-        hidden_dim: hidden_dim,
-        num_attention_heads: num_attention_heads,
-        num_layers: num_layers,
-        dropout: dropout,
-      },
     },
-    teacher: {
-      type: 'from_archive',
-      archive_file: root + teacher_model,
+    pos_embedder: {
+      embedding_dim: embedding_dim,
+      num_embeddings: sequence_length,
+    },
+    decoder: {
+      type: 'gpt2-transformer-decoder',
+      input_dim: embedding_dim,
+      hidden_dim: hidden_dim,
+      num_attention_heads: num_attention_heads,
+      num_layers: num_layers,
+      dropout: dropout,
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
@@ -109,7 +94,21 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    cuda_device: cuda_device,
+    learning_rate_scheduler: {
+      type: 'combined',
+      schedulers: [
+      [1, {
+        type: 'linear_with_warmup',
+        warmup_steps: 10000,
+        num_epochs: 1,
+      }],
+      [epochs - 1, {
+        type: 'cosine',
+        t_initial: epochs-1,
+      }],
+      ],
+    },
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -117,7 +116,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

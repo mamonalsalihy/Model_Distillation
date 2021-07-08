@@ -9,8 +9,8 @@ local decay = 0.0;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 30;
-local patience = 10;
+local epochs = 50;
+local patience = 3;
 local dropout = 0.1;
 
 // Student
@@ -19,12 +19,7 @@ local embedding_dim = 512;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 8;
 
-// Teacher
-local teacher_num_layers = 16;
-local teacher_embedding_dim = 768;
-local teacher_hidden_dim = teacher_embedding_dim * 4;
-local teacher_num_attention_heads = 12;
-local teacher_weights = '/data/users/nilay/the-count/saved-experiments/134M-model/best.th';
+local teacher_model = '/saved-experiments/138M-model/';
 
 // Hyper params
 local temperature = 3;
@@ -80,25 +75,9 @@ local eval_reader = {
       },
     },
     teacher: {
-      type: 'simple-transformer-language-model',
-      embedding_dim: teacher_embedding_dim,
-      embedder: {
-        embedding_dim: teacher_embedding_dim,
-      },
-      pos_embedder: {
-        embedding_dim: teacher_embedding_dim,
-        num_embeddings: sequence_length,
-      },
-      decoder: {
-        type: 'gpt2-transformer-decoder',
-        input_dim: teacher_embedding_dim,
-        hidden_dim: teacher_hidden_dim,
-        num_attention_heads: teacher_num_attention_heads,
-        num_layers: teacher_num_layers,
-        dropout: dropout,
-      },
+      type: 'from_archive',
+      archive_file: root + teacher_model,
     },
-    teacher_state_dict: teacher_weights,
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
   validation_data_path: root + 'data/wikitext-103/wiki.valid.tokens',
@@ -130,11 +109,6 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    // learning_rate_scheduler: {
-    //   type: 'cosine_with_warmup',
-    //   num_training_steps: 14085 * epochs ,
-    //   num_warmup_steps: 5000,
-    // },
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [

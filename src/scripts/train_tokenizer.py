@@ -10,7 +10,7 @@ from tokenizers import decoders
 import sys
 
 sys.path.append("../")
-from count import config
+from src.count import config
 import os
 
 

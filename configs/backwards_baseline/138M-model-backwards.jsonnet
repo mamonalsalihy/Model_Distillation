@@ -19,7 +19,7 @@ local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 
-local cuda_devices = [0, 1];
+local cuda_devices = [2, 3];
 local cuda_device = 0;
 
 local train_reader = {

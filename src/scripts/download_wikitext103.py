@@ -34,3 +34,4 @@ if __name__ == '__main__':
     raw_character_level = 'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-raw-v1.zip'
     word_level = 'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip'
     download(url=raw_character_level, data_dir=config.DATA_DIR)
+    download(url=word_level, data_dir=config.DATA_DIR)

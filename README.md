@@ -41,13 +41,13 @@ source ./<name-of-venv>/bin/activate
 4. Run setup scripts
 ```bash
 # Downloads and stores WikiText-103 to data directory
-python ./src/scripts/download_wikitext103.py
+python ./scripts/download_wikitext103.py
 
 # train the tokenizer
-python ./src/scripts/train_tokenizer.py
+python ./scripts/train_tokenizer.py
 
 # build the vocabulary
-python ./src/scripts/build_vocabulary.py
+python ./scripts/build_vocabulary.py
 ```
 
 Training

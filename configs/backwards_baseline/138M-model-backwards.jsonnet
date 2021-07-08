@@ -1,5 +1,5 @@
 // Paths
-local root = '/data/users/aukking/Model_Distillation/';
+local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;

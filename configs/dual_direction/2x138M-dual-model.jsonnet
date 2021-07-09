@@ -15,7 +15,7 @@ local dropout = 0.1;
 
 // Model config
 local forward_path = root + '/saved-experiments/138M-model/';
-local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/';
+local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/model.tar.gz';
 
 local cuda_devices = [2, 3];
 local cuda_device = 0;

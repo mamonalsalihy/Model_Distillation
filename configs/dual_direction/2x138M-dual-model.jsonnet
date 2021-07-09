@@ -1,5 +1,5 @@
 // Paths
-local root = '/data/users/aukking/Model_Distillation/';
+local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
@@ -14,8 +14,8 @@ local patience = 3;
 local dropout = 0.1;
 
 // Model config
-local forward_path = '/data/users/nilay/the-count/saved-experiments/138M-model/';
-local backward_path = root + '/saved-experiments/backwards-baseline-138M-4/inter_results/';
+local forward_path = root + '/saved-experiments/138M-model/';
+local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/';
 
 local cuda_devices = [2, 3];
 local cuda_device = 0;

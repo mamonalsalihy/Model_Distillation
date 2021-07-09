@@ -35,6 +35,7 @@ from src.count import config
 from src.count.data import WikiTextReader
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
+from src.count.models.dual_directional import DualDirectionalModel
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 

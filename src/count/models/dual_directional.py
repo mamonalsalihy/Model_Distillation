@@ -16,6 +16,7 @@ from allennlp.data import Vocabulary
 from allennlp.models import Model
 from allennlp.modules import Embedding
 from allennlp.data import TensorDict
+from allennlp.training.metrics import Perplexity
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
@@ -40,6 +41,8 @@ class DualDirectionalModel(Model):
 
         self.forward_model = forward_model
         self.backward_model = backward_model
+
+        self.metric = Perplexity()
 
         if forward_state_dict is not None:
             state_dict = torch.load(forward_state_dict)
@@ -95,7 +98,7 @@ class DualDirectionalModel(Model):
         return self.forward_model.make_output_human_readable(output_dict)
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"perplexity": self.forward_model.metric.get_metric(reset)}
+        return {"perplexity": self.metric.get_metric(reset)}
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.forward_model.parameters() if p.requires_grad)

@@ -95,7 +95,7 @@ class DualDirectionalModel(Model):
         return self.forward_model.make_output_human_readable(output_dict)
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"perplexity": self.student.metric.get_metric(reset)}
+        return {"perplexity": self.forward_model.metric.get_metric(reset)}
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.forward_model.parameters() if p.requires_grad)

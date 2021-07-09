@@ -18,6 +18,8 @@ from allennlp.modules import Embedding
 from allennlp.data import TensorDict
 from allennlp.training.metrics import Perplexity
 
+from src.count import config
+
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
@@ -42,7 +44,15 @@ class DualDirectionalModel(Model):
         self.forward_model = forward_model
         self.backward_model = backward_model
 
+        # Vocabulary stuff
+        # ================
+        self.vocab_size = vocab.get_vocab_size()
+        self.PAD_IDX = self.vocab.get_token_index(config.PAD)
+
+        # Evaluation
+        # ==========
         self.metric = Perplexity()
+        self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         if forward_state_dict is not None:
             state_dict = torch.load(forward_state_dict)
@@ -59,6 +69,8 @@ class DualDirectionalModel(Model):
         self,
         tokens: TensorDict,
     ) -> Dict[str, torch.Tensor]:
+        labels = tokens[1:]  # [S, B]
+
         forward = self.forward_model.forward(tokens)
         backward = self.backward_model.forward(tokens)
 
@@ -75,10 +87,18 @@ class DualDirectionalModel(Model):
         logits[:, -1, :] += forward_logits[:, -1, :]  # N
         logits[:, :-1, :] += backward_logits[:, 1:, :] / 2  # 2 -> N-1
 
+        # Calculate loss
+        # ==============
+        preds = logits.reshape(-1, self.vocab_size)
+        reals = labels.reshape(-1)
+        loss = self.loss(preds, reals)
+
+        self.metric(loss)
+
         # return combined logits & loss
         return {
             "logits": logits,
-            "loss": forward["loss"] + backward["loss"],
+            "loss": loss,
         }
 
     def make_output_human_readable(

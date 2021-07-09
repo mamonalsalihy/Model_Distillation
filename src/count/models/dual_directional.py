@@ -69,7 +69,7 @@ class DualDirectionalModel(Model):
         self,
         tokens: TensorDict,
     ) -> Dict[str, torch.Tensor]:
-        labels = tokens[1:].transpose(0, 1)  # [S, B]
+        labels = tokens.transpose(0, 1)[1:]  # [S, B]
 
         forward = self.forward_model.forward(tokens)
         backward = self.backward_model.forward(tokens)

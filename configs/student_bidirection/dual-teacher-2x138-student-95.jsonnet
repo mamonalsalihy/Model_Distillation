@@ -1,5 +1,5 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
+local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
@@ -18,7 +18,7 @@ local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 
-local teacher_model = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/model.tar.gz';
+local teacher_model = '/saved-experiments/backwards-baseline-138M-4/model.tar.gz';
 
 // Hyper params
 local temperature = 3;
@@ -75,7 +75,7 @@ local eval_reader = {
     },
     teacher: {
       type: 'from_archive',
-      archive_file: teacher_model,
+      archive_file: root + teacher_model,
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',

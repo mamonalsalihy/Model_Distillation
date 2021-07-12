@@ -17,7 +17,7 @@ from allennlp.data.data_loaders import MultiProcessDataLoader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 
 # Data types
-from allennlp.data.fields import Field, TextField, FlagField, TensorField
+from allennlp.data.fields import Field, TextField, FlagField, TensorField, MetadataField
 from allennlp.data.instance import Instance
 
 # Indexers
@@ -104,7 +104,7 @@ class WikiTextReader(DatasetReader):
             start = 0
             for i, end in enumerate(sequence_indices):
                 seq = subwords[start : end + 1]
-                yield Instance({"tokens": TensorField(seq), "ratio": FlagField(ratio), 'sequence_len': MetadataField(len(seq) - 1)})
+                yield Instance({"tokens": TensorField(seq), 'sequence_len': MetadataField(len(seq) - 1)})
                 start = end + 1
         elif self.exclusive:
             num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length

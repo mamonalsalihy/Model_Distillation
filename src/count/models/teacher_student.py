@@ -67,15 +67,16 @@ class TeacherStudent(Model):
     def forward(
         self,
         tokens: TensorDict,
+        ratio: float,
     ) -> Dict[str, torch.Tensor]:
 
-        student_output = self.student(tokens)
+        student_output = self.student(tokens, ratio)
         student_logits = student_output["logits"]
         ce_loss = student_output["loss"]
 
         if self.training:
             with torch.no_grad():
-                teacher_output = self.teacher(tokens)
+                teacher_output = self.teacher(tokens, ratio)
                 teacher_logits = teacher_output["logits"]
 
             # Calculate KL divergence loss

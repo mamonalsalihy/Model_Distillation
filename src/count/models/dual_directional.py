@@ -52,6 +52,7 @@ class DualDirectionalModel(Model):
         # Evaluation
         # ==========
         self.metric = Perplexity()
+        self.word_perplexity = Perplexity()
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         if forward_state_dict is not None:
@@ -68,6 +69,7 @@ class DualDirectionalModel(Model):
     def forward(
         self,
         tokens: TensorDict,
+        ratio: float,
     ) -> Dict[str, torch.Tensor]:
         labels = tokens.transpose(0, 1)[1:]  # [S, B]
 
@@ -94,6 +96,7 @@ class DualDirectionalModel(Model):
         loss = self.loss(preds, reals)
 
         self.metric(loss)
+        self.word_perplexity(loss * ratio)
 
         # return combined logits & loss
         return {
@@ -118,7 +121,10 @@ class DualDirectionalModel(Model):
         return self.forward_model.make_output_human_readable(output_dict)
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"perplexity": self.metric.get_metric(reset)}
+        return {
+            "perplexity": self.metric.get_metric(reset),
+            "word_perplexity": self.word_perplexity.get_metric(reset),
+        }
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.forward_model.parameters() if p.requires_grad)

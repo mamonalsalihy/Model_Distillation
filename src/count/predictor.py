@@ -5,27 +5,20 @@ import argparse
 
 # Torch
 import torch
+from collections import namedtuple
 
 # AllenNLP
 from allennlp.models import Model
 from allennlp.common import Params
-from allennlp.data.fields import Field, TextField, TensorField
-from allennlp.data.token_indexers import SingleIdTokenIndexer
-from allennlp.data.instance import Instance
 from allennlp.data.tokenizers.tokenizer import Tokenizer
-from allennlp.data import Vocabulary
-from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 
 from tokenizers import Tokenizer
 
 # Local
 sys.path.append(str(Path(__file__).resolve().parents[2]))
+from models.simple_transformer import SimpleTransformerLanguageModel
+from decoders.transformer_decoder import TransformerDecoder
 
-# Local
-from src.count import config
-from src.count.tokenizer import WikiTextTokenizer
-from src.count.decoders.transformer_decoder import TransformerDecoder
-from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 
 
 class LMInference:
@@ -36,31 +29,45 @@ class LMInference:
         # only for evaluation
         self.model.eval()
 
-    def predict_continuation(self, text: str, n: int):
-        ids = self.tokenizer.encode(text).ids[:-1]
+    def speak(self, text: str, n: int):
         for i in range(n):
+            ids = self.tokenizer.encode(text).ids
+            ratio = len(text.split()) / (len(ids) - 2)
             x = torch.tensor(ids, dtype=torch.long, device="cpu").view(1, -1)
             with torch.no_grad():
-                output = self.model.forward(x, only_predict_next=True)
-            output = self.model.make_output_human_readable(output)
-            new_ids = list(output["token_ids"])
-            ids.append(new_ids[-1])
+                output = self.model.forward(x, 1.0)
+            # output = self.model.make_output_human_readable(output)
+            logits = output['logits']
+            logits = logits.view(1, -1, logits.size(-1))
+            tokens = torch.argmax(logits, dim=-1)
+            new_id = tokens[:, -1].item()
+            ids.append(new_id)
+            text = self.tokenizer.decode(ids)
+            if new_id == self.tokenizer.token_to_id("[CLS]"):
+                return text
         new_text = self.tokenizer.decode(ids)
 
         return new_text
 
+def load(args=None):
+    if args is None:
+        args = {"tokenizer": str(Path(__file__).parents[2].resolve() / "wordpiece-tokenizer.json"),
+                "archive_dir":str(Path(__file__).parents[2].resolve() / "saved-experiments/138M-model/")}
+        print(args)
+        args = namedtuple("args", args)(**args)
+    tokenizer = Tokenizer.from_file(args.tokenizer)
+    params = Params.from_file(Path(args.archive_dir) / "config.json")
+    model = Model.load(params, serialization_dir=args.archive_dir)
+    inf = LMInference(model, tokenizer)
+    return inf
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("tokenizer")
     parser.add_argument("archive_dir")
     parser.add_argument("max")
+    parser.add_argument("text")
     args = parser.parse_args()
 
-    tokenizer = Tokenizer.from_file(args.tokenizer)
-    params = Params.from_file(Path(args.archive_dir) / "config.json")
-    model = Model.load(params, serialization_dir=args.archive_dir)
-    inf = LMInference(model, tokenizer)
-
-    print(inf.predict_continuation("Super Mario Bros. is a platform game", int(args.max)))
-    # print(tokenizer.decode([2,  8562, 26606,  6591,  6617]))
+    inf = load(args)
+    print(inf.speak(args.text, int(args.max)))

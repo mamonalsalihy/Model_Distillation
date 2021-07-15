@@ -40,8 +40,8 @@ class KMultiheadAttention(nn.Module):
         query: torch.Tensor,
         key: torch.Tensor,
         value: torch.Tensor,
-        key_padding_mask: torch.Tensor,
-        attn_mask: torch.Tensor,
+        attn_mask: torch.Tensor = None,
+        key_padding_mask: torch.Tensor = None,
         need_weights: bool = True,
     ):
         # query shape: batch, output_size, embed_dim

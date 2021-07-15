@@ -35,7 +35,7 @@ class KLinear(nn.Module):
             - Pair 2: 4x12 (left) and 8x8 (right)
         """
         super().__init__()
-        factory_kwargs = {"device": device, "dtype": dtype}
+        self.factory_kwargs = {"device": device, "dtype": dtype}
         self.shape = (in_features, out_features)
         self.factor_sizes = factor_sizes or self.from_factors()
 
@@ -44,8 +44,8 @@ class KLinear(nn.Module):
         for left_size, right_size in self.factor_sizes:
             assert left_size[0] * right_size[0] == in_features
             assert left_size[1] * right_size[1] == out_features
-            left = nn.Parameter(torch.rand(size=left_size, **factory_kwargs))
-            right = nn.Parameter(torch.rand(size=right_size, **factory_kwargs))
+            left = nn.Parameter(torch.rand(size=left_size, **self.factory_kwargs))
+            right = nn.Parameter(torch.rand(size=right_size, **self.factory_kwargs))
             left_factors.append(left)
             right_factors.append(right)
 
@@ -54,7 +54,7 @@ class KLinear(nn.Module):
 
         self.update()
         if bias:
-            self.bias = nn.Parameter(torch.rand(out_features, **factory_kwargs))
+            self.bias = nn.Parameter(torch.rand(out_features, **self.factory_kwargs))
         else:
             self.register_parameter("bias", None)
 
@@ -62,7 +62,7 @@ class KLinear(nn.Module):
         self.update()
 
     def update(self):
-        weight = torch.zeros(size=self.shape)
+        weight = torch.zeros(size=self.shape, **self.factory_kwargs)
         for left, right in zip(self.left_factors, self.right_factors):
             weight += torch.kron(left, right)
 

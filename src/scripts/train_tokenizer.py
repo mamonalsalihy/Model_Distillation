@@ -10,7 +10,7 @@ from tokenizers import decoders
 import sys
 
 sys.path.append("../")
-from count import config
+from src.count import config
 import os
 
 
@@ -21,7 +21,7 @@ def train(
     vocab_size: int = 32_000,
     pre: list = None,
     norms: list = None,
-    post: processors.PostProcessor = None,
+    post: str = None,
 ):
     special_tokens = [config.PAD, config.UNK, config.CLS, config.SEP]
     # Initialize the classes
@@ -57,13 +57,18 @@ def train(
     else:
         tokenizer.normalizer = normalizers.Sequence(norms)
 
-    if post is not None:
-        tokenizer.post_processor = post
-
     # Train and save tokenizer
     # ========================
     print("Training tokenizer ... ")
     tokenizer.train(files, trainer)
+
+    if post.lower() == "bert":
+        sep_idx = tokenizer.token_to_id(config.SEP)
+        cls_idx = tokenizer.token_to_id(config.CLS)
+        tokenizer.post_processor = processors.BertProcessing(
+            sep=(config.SEP, sep_idx), cls=(config.CLS, cls_idx)
+        )
+
     tokenizer.save(output)
     print("Finished training tokenizer ... ")
 
@@ -83,7 +88,7 @@ if __name__ == "__main__":
         pre_tokenizers.Digits(individual_digits=False),
     ]
     NORMS = [normalizers.BertNormalizer(lowercase=False)]
-    POST_PROCESSOR = None
+    POST_PROCESSOR = "BERT"
 
     train(
         algorithm=ALGORITHM,

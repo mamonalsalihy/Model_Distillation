@@ -2,6 +2,7 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Torch transformer
 import torch
@@ -12,7 +13,7 @@ from allennlp.data import Vocabulary
 
 # Models
 from allennlp.models import Model
-from allennlp.modules import TextFieldEmbedder
+from allennlp.modules import Embedding
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
@@ -28,22 +29,18 @@ class MaskedLanguageModelTransformer(Transformer):
     def __init__(
         self,
         vocab: Vocabulary,
-        embedder: TextFieldEmbedder,
+        embedder: Embedding,
+        pos_embedder: Embedding,
         decoder: Decoder,
         embedding_dim: int,
-        max_positions: int,
+        state_dict: Optional[str] = None,
     ) -> None:
-        super().__init__(vocab, embedder, decoder, embedding_dim)
-        self.pos_embedder = nn.Embedding(max_positions, embedding_dim)
+        super().__init__(vocab, embedder, pos_embedder, decoder, embedding_dim, state_dict)
 
-    def _add_positional_embeddings(self, token_ids, embeddings):
-        positions = torch.arange(token_ids.shape[1], device=embeddings.device).unsqueeze(-1)
-        pos_embeddings = self.pos_embedder(positions).permute(1, 0, 2).expand_as(embeddings)
-        return embeddings + pos_embeddings
-
-    def _make_attention_mask(self, target_len, context_len):
+    def _make_attention_mask(self, emb):
+        size = emb.size(0)
         mask_values = torch.full(
-            (target_len - 1,),
+            (size - 1,),
             fill_value=-float("inf"),
         )
         attn_mask = torch.diag(mask_values, diagonal=1)

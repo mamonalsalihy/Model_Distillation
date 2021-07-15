@@ -43,15 +43,6 @@ class WikiTextTokenizer(Tokenizer):
     ) -> None:
         self.tokenizer = HFTokenizer.from_file(tokenizer_path)
         self._add_special_tokens = add_special_tokens
-
-        # If we're adding special tokens, add the BERT post-processor
-        if self._add_special_tokens:
-            sep_idx = self.tokenizer.token_to_id(config.SEP)
-            cls_idx = self.tokenizer.token_to_id(config.CLS)
-            self.tokenizer.post_processor = BertProcessing(
-                sep=(config.SEP, sep_idx), cls=(config.CLS, cls_idx)
-            )
-
         self._tokenizer_lowercases = "a" in self.tokenizer.encode("A").tokens
 
     @overrides

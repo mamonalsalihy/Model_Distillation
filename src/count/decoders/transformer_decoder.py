@@ -22,7 +22,6 @@ class TransformerDecoder(nn.Module):
         num_attention_heads: int,
         num_layers: int,
         dropout: float,
-        activation: Optional[str] = "relu",
         **kwargs,
     ) -> None:
         """Simple Transformer-Decoder model (no encoder at all).
@@ -50,7 +49,6 @@ class TransformerDecoder(nn.Module):
                 num_attention_heads=num_attention_heads,
                 hidden_dim=hidden_dim,
                 dropout=dropout,
-                activation=activation,
             )
             decoder_layers.append(layer)
 
@@ -59,7 +57,7 @@ class TransformerDecoder(nn.Module):
     def forward(
         self,
         target: torch.Tensor,
-        attn_mask: Optional[torch.Tensor] = None,
+        attn_mask: torch.Tensor,
         key_padding_mask: Optional[torch.Tensor] = None,
     ):
         for layer in self.decoder_layers:
@@ -79,7 +77,6 @@ class TransformerDecoderLayer(nn.Module):
         num_attention_heads: int,
         hidden_dim: int,
         dropout: float,
-        activation: Optional[str] = "relu",
         **kwargs,
     ) -> None:
         """Simple Transformer-Decoder block (no encoder at all).
@@ -94,13 +91,11 @@ class TransformerDecoderLayer(nn.Module):
             Dimension to use for decoded vectors
         dropout : float
             Float between 0.0 and 1.0, probability of dropout.
-        activation : Optional[str]
-            Default is "relu"
         """
         super().__init__(**kwargs)
 
         # attention
-        self.self_attn = nn.MultiheadAttention(
+        self.attention = nn.MultiheadAttention(
             embed_dim=input_dim,
             num_heads=num_attention_heads,
             dropout=dropout,
@@ -117,8 +112,8 @@ class TransformerDecoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # norms
-        self.norm_1 = nn.LayerNorm(input_dim, eps=1e-12)
-        self.norm_2 = nn.LayerNorm(input_dim, eps=1e-12)
+        self.layer_norm_1 = nn.LayerNorm(input_dim, eps=1e-12)
+        self.layer_norm_2 = nn.LayerNorm(input_dim, eps=1e-12)
 
     def forward(
         self,
@@ -130,40 +125,45 @@ class TransformerDecoderLayer(nn.Module):
 
         Arguments
         ---------
-        qkv : torch.Tensor
-            Sequence of embeddings to decode, of shape `(batch_size, L, embedding_dim)`
+        target : torch.Tensor
+            Sequence of embeddings to decode, of shape `(L, B, D)`
         attn_mask : torch.Tensor
             Binary matrix indicating which items in `target` to attend to (1) or ignore (0) at each
-            timestep. Shape is `(batch_size, N, N)`
+            timestep. Shape is `(L, L)`
         key_padding_mask : torch.Tensor
             Binary matrix indicating which items in `target` are padding.
 
         Returns
         -------
         torch.Tensor :
-            Decoded tensor of shape `(batch_size, N, embedding_dim)`
+            Decoded tensor of shape `(N, B, embedding_dim)`
         """
-        target = target.permute(1, 0, 2)
+        # prenorm
+        target = self.layer_norm_1(target)
 
-        # norm
-        target = self.norm_1(target)
-
-        # attention
-        attn, _ = self.self_attn.forward(
-            query=target,
-            value=target,
-            key=target,
-            key_padding_mask=key_padding_mask,
+        # attention & dropout
+        inp, _ = self.attention(
+            target,
+            target,
+            target,
             attn_mask=attn_mask,
+            need_weights=False,
         )
-        # add + norm
-        target = self.norm_2(target + attn).permute(1, 0, 2)
-
-        # feedforward + dropout
-        ff_target = self.dropout(self.feedforward(target))
+        inp = self.dropout(inp)
 
         # add
-        return target + ff_target
+        target = inp + target
+
+        # prenorm
+        target = self.layer_norm_2(target)
+
+        # feedfoward & dropout
+        inp = self.feedforward(target)
+        inp = self.dropout(inp)
+
+        # add
+        target = inp + target
+        return target
 
 
 if __name__ == "__main__":

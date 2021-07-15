@@ -1,22 +1,22 @@
 // Paths
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
-local lr = 1e-2;
+local lr = 2.5e-4;
 local decay = 0.00;
-local batch_size = 12;
+local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 1000;
-local patience = 500;
-local dropout = 0.0;
+local epochs = 30;
+local patience = 5;
+local dropout = 0.1;
 
 // Model config
-local num_layers = 16;
-local embedding_dim = 12;
+local num_layers = 8;
+local embedding_dim = 512;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 12;
+local num_attention_heads = 8;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
@@ -94,10 +94,11 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    learning_rate_scheduler: {
-      type: 'cosine_with_warmup',
-      num_warmup_steps: 5000,
-    },
+    //learning_rate_scheduler: {
+    //  type: 'cosine_with_warmup',
+    //  num_training_steps: 14085 * epochs,
+    //  num_warmup_steps: 5000,
+    //},
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [

@@ -2,74 +2,43 @@
 local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
-local context = 256;
-local lr = 2e-3;
-local decay = 0.1;
+local sequence_length = 256;
+local lr = 2.5e-4;
+local decay = 0.00;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 100;
-local patience = 50;
+local epochs = 50;
+local patience = 10;
 local dropout = 0.1;
-local warmup_steps = 10000;
 
 // Model config
-local num_layers = 12;
+local num_layers = 16;
 local embedding_dim = 768;
-local hidden_dim = 768 * 4;
+local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];
-local cuda_device = 1;
+local cuda_device = 0;
 
 local train_reader = {
   type: 'wikitext-reader',
-  context: context,
-  tokenizer: {
-    type: 'wikitext-tokenizer',
-    tokenizer_path: root + 'wordpiece-tokenizer.json',
-    add_special_tokens: true,
-  },
-  token_indexers: {
-    tokens: {
-      type: 'single_id',
-      namespace: 'tokens',
-    },
-  },
-  exclusive: true,
-  split_on: 'paragraph',
-  min_context_len: 2,
+  sequence_length: sequence_length,
+  tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
-  manual_multiprocess_sharding: true,
-  manual_distributed_sharding: true,
 };
 
 local eval_reader = {
   type: 'wikitext-reader',
-  context: context,
-  tokenizer: {
-    type: 'wikitext-tokenizer',
-    tokenizer_path: root + 'wordpiece-tokenizer.json',
-    add_special_tokens: true,
-  },
-  token_indexers: {
-    tokens: {
-      type: 'single_id',
-      namespace: 'tokens',
-    },
-  },
-  exclusive: false,
-  eval: true,
-  split_on: 'paragraph',
-  min_context_len: 2,
+  sequence_length: sequence_length,
+  tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
-  manual_multiprocess_sharding: true,
-  manual_distributed_sharding: true,
 };
 
 {
   dataset_reader: train_reader,
+  validation_dataset_reader: eval_reader,
   vocabulary: {
     type: 'from_files',
     directory: root + 'data/vocab/',
@@ -78,17 +47,14 @@ local eval_reader = {
   },
   model: {
     type: 'simple-transformer-language-model',
-    embedding_dim: embedding_dim,
-    max_positions: context,
     backward: true,
+    embedding_dim: embedding_dim,
     embedder: {
-      type: 'basic',
-      token_embedders: {
-        tokens: {
-          type: 'embedding',
-          embedding_dim: embedding_dim,
-        },
-      },
+      embedding_dim: embedding_dim,
+    },
+    pos_embedder: {
+      embedding_dim: embedding_dim,
+      num_embeddings: sequence_length,
     },
     decoder: {
       type: 'gpt2-transformer-decoder',
@@ -96,24 +62,18 @@ local eval_reader = {
       hidden_dim: hidden_dim,
       num_attention_heads: num_attention_heads,
       num_layers: num_layers,
-      activation: activation,
       dropout: dropout,
     },
-    // initializer: {
-    //   regexes: [
-    //     ['.*weight', { type: 'xavier_normal' }],
-    //   ],
-    // },
   },
-  train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
-  validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
-  test_data_path: root + 'data/wikitext-103-raw/wiki.test.raw',
+  train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
+  validation_data_path: root + 'data/wikitext-103/wiki.valid.tokens',
+  test_data_path: root + 'data/wikitext-103/wiki.test.tokens',
   data_loader: {
     type: 'multiprocess',
     batch_size: batch_size,
     shuffle: true,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 4,
+    num_workers: 0,
     start_method: 'fork',
   },
   validation_data_loader: {
@@ -121,7 +81,7 @@ local eval_reader = {
     batch_size: batch_size,
     shuffle: false,
     max_instances_in_memory: max_instances_memory,
-    num_workers: 4,
+    num_workers: 0,
     start_method: 'fork',
   },
   trainer: {
@@ -129,16 +89,18 @@ local eval_reader = {
     validation_metric: '-perplexity',
     num_epochs: epochs,
     patience: patience,
+    run_sanity_checks: false,
     optimizer: {
       type: 'adam',
       lr: lr,
       weight_decay: decay,
     },
-    learning_rate_scheduler: {
-      type: 'constant_with_warmup',
-      num_warmup_steps: warmup_steps,
-    },
-    cuda_device: cuda_device,
+    // learning_rate_scheduler: {
+    //   type: 'cosine_with_warmup',
+    //   num_training_steps: 14085 * epochs,
+    //   num_warmup_steps: 5000,
+    // },
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -146,7 +108,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

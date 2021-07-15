@@ -42,6 +42,7 @@ class KMultiheadAttention(nn.Module):
         value: torch.Tensor,
         key_padding_mask: torch.Tensor,
         attn_mask: torch.Tensor,
+        need_weights: bool = True,
     ):
         # query shape: batch, output_size, embed_dim
         # key shape: batch, input_size, embed_dim

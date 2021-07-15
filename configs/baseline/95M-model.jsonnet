@@ -8,18 +8,18 @@ local decay = 0.00;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 30;
-local patience = 5;
+local epochs = 50;
+local cosine_epochs = 49;
+local patience = 3;
 local dropout = 0.1;
 
 // Model config
-local num_layers = 4;
-local embedding_dim = 256;
+local num_layers = 10;
+local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
-local activation = 'relu';
+local num_attention_heads = 12;
 
-local cuda_devices = [1, 2];
+local cuda_devices = [0, 1];
 local cuda_device = 0;
 
 local train_reader = {
@@ -94,12 +94,21 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    //learning_rate_scheduler: {
-    //  type: 'cosine_with_warmup',
-    //  num_training_steps: 14085 * epochs,
-    //  num_warmup_steps: 5000,
-    //},
-    cuda_device: cuda_device,
+    learning_rate_scheduler: {
+      type: 'combined',
+      schedulers: [
+      [1, {
+        type: 'linear_with_warmup',
+        warmup_steps: 10000,
+        num_epochs: 1,
+      }],
+      [epochs - 1, {
+        type: 'cosine',
+        t_initial: epochs-1,
+      }],
+      ],
+    },
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -107,7 +116,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

@@ -67,15 +67,21 @@ class TeacherStudent(Model):
     def forward(
         self,
         tokens: TensorDict,
+        ratio: float,
     ) -> Dict[str, torch.Tensor]:
 
-        student_output = self.student(tokens)
+        student_output = self.student(tokens, ratio)
         student_logits = student_output["logits"]
+
+        # Calculate Loss and Perplexity
+        # =============================
         ce_loss = student_output["loss"]
+        self.student.perplexity(ce_loss)
+        self.student.word_perplexity(ce_loss * ratio)
 
         if self.training:
             with torch.no_grad():
-                teacher_output = self.teacher(tokens)
+                teacher_output = self.teacher(tokens, ratio)
                 teacher_logits = teacher_output["logits"]
 
             # Calculate KL divergence loss
@@ -107,7 +113,10 @@ class TeacherStudent(Model):
         return self.student.make_output_human_readable(output_dict)
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"perplexity": self.student.metric.get_metric(reset)}
+        return {
+            "perplexity": self.student.perplexity.get_metric(reset),
+            "word_perplexity": self.student.word_perplexity.get_metric(reset),
+        }
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.parameters() if p.requires_grad)

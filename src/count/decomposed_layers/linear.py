@@ -44,8 +44,12 @@ class KLinear(nn.Module):
         for left_size, right_size in self.factor_sizes:
             assert left_size[0] * right_size[0] == in_features
             assert left_size[1] * right_size[1] == out_features
-            left = nn.Parameter(torch.rand(size=left_size, **self.factory_kwargs))
-            right = nn.Parameter(torch.rand(size=right_size, **self.factory_kwargs))
+            left = nn.Parameter(
+                torch.normal(mean=0.0, std=0.02, size=left_size, **self.factory_kwargs)
+            )
+            right = nn.Parameter(
+                torch.normal(mean=0.0, std=0.02, size=right_size, **self.factory_kwargs)
+            )
             left_factors.append(left)
             right_factors.append(right)
 
@@ -58,15 +62,12 @@ class KLinear(nn.Module):
         else:
             self.register_parameter("bias", None)
 
-    def _hook(self, module, grad_input, grad_output):
-        self.update()
-
     def update(self):
-        weight = torch.zeros(size=self.shape, **self.factory_kwargs)
+        weight = torch.zeros(size=self.shape, dtype=torch.float, device=self.left_factors[0].device)
         for left, right in zip(self.left_factors, self.right_factors):
             weight += torch.kron(left, right)
 
-        self.weight = weight.T / len(self.left_factors)
+        self.weight = weight.T
 
     def forward(self, x: torch.Tensor):
         self.update()

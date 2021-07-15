@@ -51,6 +51,7 @@ class KTransformerDecoder(nn.Module):
                 num_attention_heads=num_attention_heads,
                 hidden_dim=hidden_dim,
                 dropout=dropout,
+                **kwargs,
             )
             decoder_layers.append(layer)
 
@@ -97,7 +98,7 @@ class KTransformerDecoderLayer(nn.Module):
         super().__init__(**kwargs)
 
         # attention
-        self.attention = KMultiheadAttention(
+        self.attention = nn.MultiheadAttention(
             embed_dim=input_dim,
             num_heads=num_attention_heads,
             dropout=dropout,
@@ -141,7 +142,7 @@ class KTransformerDecoderLayer(nn.Module):
             Decoded tensor of shape `(N, B, embedding_dim)`
         """
         # prenorm
-        target = self.layer_norm_1(target)
+        target = self.layer_norm_1(target)  # .transpose(0, 1)  # new shape: [B, L, D]
 
         # attention & dropout
         inp, _ = self.attention(
@@ -149,7 +150,6 @@ class KTransformerDecoderLayer(nn.Module):
             target,
             target,
             attn_mask=attn_mask,
-            need_weights=False,
         )
         inp = self.dropout(inp)
 
@@ -165,4 +165,5 @@ class KTransformerDecoderLayer(nn.Module):
 
         # add
         target = inp + target
-        return target
+
+        return target  # .transpose(0, 1)

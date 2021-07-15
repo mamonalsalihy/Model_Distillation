@@ -11,10 +11,12 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
 from src.count.decoders.base_decoder import Decoder
+from src.count.decomposed_layers.linear import KLinear
+from src.count.decomposed_layers.attention import KMultiheadAttention
 
 
-@Decoder.register("gpt2-transformer-decoder")
-class TransformerDecoder(nn.Module):
+@Decoder.register("decomposed-transformer-decoder")
+class KTransformerDecoder(nn.Module):
     def __init__(
         self,
         input_dim: int,
@@ -44,7 +46,7 @@ class TransformerDecoder(nn.Module):
         super().__init__(**kwargs)
         decoder_layers = []
         for i in range(num_layers):
-            layer = TransformerDecoderLayer(
+            layer = KTransformerDecoderLayer(
                 input_dim=input_dim,
                 num_attention_heads=num_attention_heads,
                 hidden_dim=hidden_dim,
@@ -70,7 +72,7 @@ class TransformerDecoder(nn.Module):
         return target
 
 
-class TransformerDecoderLayer(nn.Module):
+class KTransformerDecoderLayer(nn.Module):
     def __init__(
         self,
         input_dim: int,
@@ -95,7 +97,7 @@ class TransformerDecoderLayer(nn.Module):
         super().__init__(**kwargs)
 
         # attention
-        self.attention = nn.MultiheadAttention(
+        self.attention = KMultiheadAttention(
             embed_dim=input_dim,
             num_heads=num_attention_heads,
             dropout=dropout,
@@ -103,9 +105,9 @@ class TransformerDecoderLayer(nn.Module):
 
         # FF network
         self.feedforward = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
+            KLinear(input_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, input_dim),
+            KLinear(hidden_dim, input_dim),
         )
 
         # dropout

@@ -13,48 +13,6 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 from src.count.decomposed_layers.linear import KLinear
 
 
-class ScaledDotProductAttention(nn.Module):
-    def __init__(self):
-        "Standard scaled dot-product attention"
-        super().__init__()
-
-    def forward(self, query, key, value, attn_mask, key_padding_mask):
-        """Standard scaled dot-product attention
-
-        Arguments
-        ---------
-        query : torch.Tensor
-            Tensor of shape [B, L, D]
-        key : torch.Tensor
-            Tensor of shape [B, S, D]
-        value : torch.Tensor
-            Tensor of shape [B, S, D]
-        key_padding_mask : torch.Tensor
-            Tensor of shape [B, S]
-        attn_mask : torch.Tensor
-            Tensor of shape [L, S]
-
-        Returns
-        -------
-
-        """
-        B, L, D = query.shape
-        scores = torch.bmm(query, key.transpose(2, 1))  # B, L, S
-        scores = scores / np.sqrt(D)  # scale by sqrt(d)
-
-        # fill the masked values with super small number
-        if attn_mask is not None:
-            attn_mask = attn_mask.unsqueeze(0).expand(B, -1, -1)  # B, L, S
-            scores = scores.masked_fill(attn_mask.bool(), -1e9)
-        if key_padding_mask is not None:
-            key_padding_mask = key_padding_mask.unsqueeze(1).expand(-1, L, -1)  # B, L, S
-            scores = scores.masked_fill(key_padding_mask.bool(), -1e9)
-
-        attn = torch.softmax(scores, dim=-1)  # B, L, S
-        context = torch.bmm(attn, value)  # shape: B, L, D
-        return context, attn
-
-
 class KMultiheadAttention(nn.Module):
     def __init__(
         self,
@@ -67,13 +25,15 @@ class KMultiheadAttention(nn.Module):
         self.num_heads = num_heads
         self.dropout = dropout
 
+        assert self.embed_dim % self.num_heads == 0, "Number of heads must divide embedding dim!"
+
         # Transformations
-        self.W_q = KLinear(self.embed_dim, self.num_heads * self.embed_dim)
-        self.W_k = KLinear(self.embed_dim, self.num_heads * self.embed_dim)
-        self.W_v = KLinear(self.embed_dim, self.num_heads * self.embed_dim)
+        self.W_q = KLinear(self.embed_dim, self.embed_dim)
+        self.W_k = KLinear(self.embed_dim, self.embed_dim)
+        self.W_v = KLinear(self.embed_dim, self.embed_dim)
 
         # Output
-        self.linear = KLinear(self.num_heads * self.embed_dim, embed_dim)
+        self.linear = KLinear(self.embed_dim, self.embed_dim)
 
     def forward(
         self,
@@ -123,10 +83,3 @@ class KMultiheadAttention(nn.Module):
         output = self.linear(context)
         # return output and weights
         return output, attn
-
-    def count_parameters(self):
-        total = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        millions = total // 1_000_000
-        thousands = (total - millions * 1_000_000) // 1_000
-        string = str(millions) + "." + str(thousands) + "M"
-        return string

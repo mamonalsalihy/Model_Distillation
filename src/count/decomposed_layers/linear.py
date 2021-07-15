@@ -12,8 +12,7 @@ class KLinear(nn.Module):
         self,
         in_features: int,
         out_features: int,
-        rank: int,
-        factor_sizes: List,
+        factor_sizes: List = None,
         bias=True,
         device=None,
         dtype=None,
@@ -38,19 +37,17 @@ class KLinear(nn.Module):
         super().__init__()
         factory_kwargs = {"device": device, "dtype": dtype}
         self.shape = (in_features, out_features)
-        self.rank = rank
-        self.factor_sizes = factor_sizes
+        self.factor_sizes = factor_sizes or self.from_factors()
 
         left_factors = []
         right_factors = []
-        for r in range(rank):
-            for left_size, right_size in self.factor_sizes:
-                assert left_size[0] * right_size[0] == in_features
-                assert left_size[1] * right_size[1] == out_features
-                left = nn.Parameter(torch.rand(size=left_size, **factory_kwargs))
-                right = nn.Parameter(torch.rand(size=right_size, **factory_kwargs))
-                left_factors.append(left)
-                right_factors.append(right)
+        for left_size, right_size in self.factor_sizes:
+            assert left_size[0] * right_size[0] == in_features
+            assert left_size[1] * right_size[1] == out_features
+            left = nn.Parameter(torch.rand(size=left_size, **factory_kwargs))
+            right = nn.Parameter(torch.rand(size=right_size, **factory_kwargs))
+            left_factors.append(left)
+            right_factors.append(right)
 
         self.left_factors = nn.ParameterList(left_factors)
         self.right_factors = nn.ParameterList(right_factors)
@@ -61,49 +58,32 @@ class KLinear(nn.Module):
         else:
             self.register_parameter("bias", None)
 
+    def _hook(self, module, grad_input, grad_output):
+        self.update()
+
     def update(self):
         weight = torch.zeros(size=self.shape)
         for left, right in zip(self.left_factors, self.right_factors):
             weight += torch.kron(left, right)
 
-        self.weight = weight.T
+        self.weight = weight.T / len(self.left_factors)
 
     def forward(self, x: torch.Tensor):
+        self.update()
         return F.linear(x, self.weight, self.bias)
 
-    def count_parameters(self):
-        total = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        millions = total // 1_000_000
-        thousands = (total - millions * 1_000_000) // 1_000
-        string = str(millions) + "." + str(thousands) + "M"
-        return string
+    def from_factors(self):
+        in_size, out_size = self.shape
+        in_sizes = [i for i in range(2, in_size) if in_size % i == 0]
+        out_sizes = [i for i in range(2, out_size) if out_size % i == 0]
 
+        firsts = zip(in_sizes, in_sizes[::-1])
+        seconds = zip(out_sizes, out_sizes[::-1])
 
-def test():
-    # Setup
-    in_features = 512
-    out_features = 2048
-    a = ((8, 16), (64, 128))
-    b = ((32, 256), (16, 8))
-    c = ((16, 32), (32, 64))
-    m = KLinear(in_features, out_features, rank=4, factor_sizes=[a, b, c], bias=False)
-    optim = torch.optim.Adam(m.parameters(), lr=1e-1)
+        lefts = []
+        rights = []
+        for (l1, r1), (l2, r2) in zip(firsts, seconds):
+            lefts.append((l1, l2))
+            rights.append((r1, r2))
 
-    # Compute
-    x = torch.rand((4, in_features))
-    y = m(x)
-    target = torch.ones(4, dtype=torch.long)
-
-    # Save prior weights
-    before = m.weight
-
-    # Calculate loss & update params
-    loss = F.cross_entropy(y, target)
-    loss.backward()
-    optim.step()
-    m.update()
-
-    # Post weights
-    after = m.weight
-
-    assert not (before == after).all(), before - after
+        return list(zip(lefts, rights))

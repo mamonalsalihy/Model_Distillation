@@ -3,18 +3,19 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
-local lr = 2.5e-4;
+local lr = 5e-3;
 local decay = 0.00;
 local batch_size = 32;
-local max_instances = 1000;
+local max_instances = null;
 local max_instances_memory = null;
+local max_seq_len = null;
 local epochs = 30;
 local patience = 5;
-local dropout = 0.35;
+local dropout = 0.125;
 
 // Model config
-local num_layers = 4;
-local embedding_dim = 256;
+local num_layers = 2;
+local embedding_dim = 64;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 8;
 local activation = 'relu';
@@ -22,8 +23,8 @@ local use_highway = false;
 local go_forward = true;
 local lstm = true;
 
-local cuda_devices = [1, 2];
-local cuda_device = 0;
+local cuda_devices = [4, 5];
+local cuda_device = 5;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -31,6 +32,7 @@ local train_reader = {
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
   lstm: lstm,
+  max_seq_len: max_seq_len,
 };
 
 local eval_reader = {
@@ -39,6 +41,7 @@ local eval_reader = {
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
   lstm: lstm,
+  max_seq_len: null,
 };
 
 {
@@ -101,7 +104,7 @@ local eval_reader = {
     //  num_training_steps: 14085 * epochs,
     //  num_warmup_steps: 5000,
     //},
-    cuda_device: cuda_device,
+    //cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -109,7 +112,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+ distributed: {
+   cuda_devices: cuda_devices,
+ },
 }

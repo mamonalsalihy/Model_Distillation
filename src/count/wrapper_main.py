@@ -51,7 +51,7 @@ from src.utils.misc_utils import get_model_size
 if __name__ == "__main__":
     config_file = "../../configs/baseline/base-lstm.jsonnet"
 
-    serialization_dir = "experiments/baseline_test"
+    serialization_dir = "experiments/baseline_temp"
 
     # Training will fail if the serialization directory already
     # has stuff in it. If you are running the same training loop

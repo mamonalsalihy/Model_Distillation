@@ -97,6 +97,10 @@ if __name__ == "__main__":
     )
     val_data_loader.index_with(vocab)
 
+    for i in train_data_loader:
+        print(i)
+        input()
+
     # Make our custom decoder
     # =======================
     decoder = TransformerDecoder(

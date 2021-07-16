@@ -12,7 +12,6 @@ import torch.nn as nn
 
 # AllenNLP
 from allennlp.data import Vocabulary
-from allennlp.data import TensorDict
 
 # Models
 from allennlp.models import Model
@@ -65,7 +64,8 @@ class Transformer(Model):
 
         # Evaluation
         # ==========
-        self.metric = Perplexity()
+        self.perplexity = Perplexity()
+        self.word_perplexity = Perplexity()
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
         # Initialize weights
@@ -104,10 +104,10 @@ class Transformer(Model):
 
     def forward(
         self,
-        tokens: TensorDict,
+        tokens: torch.Tensor,
+        ratio: float,
         only_predict_next: bool = False,
     ) -> Dict[str, torch.Tensor]:
-
         tokens = tokens.transpose(0, 1)  # new shape [S+1, B]
         source = tokens[:-1]  # [S, B]
         labels = tokens[1:]  # [S, B]
@@ -131,7 +131,8 @@ class Transformer(Model):
         reals = labels.reshape(-1)
         loss = self.loss(preds, reals)
 
-        self.metric(loss)
+        self.perplexity(loss)
+        self.word_perplexity(loss * ratio)
         return {"logits": logits, "loss": loss}
 
     def make_output_human_readable(
@@ -153,14 +154,16 @@ class Transformer(Model):
         predicted_id = numpy.argmax(logits, axis=-1)
 
         # Convert these IDs back to label strings using vocab
-        output_dict["label"] = [
-            self.vocab.get_token_from_index(x, namespace="tokens") for x in predicted_id
+        output_dict["tokens"] = [
+            self.vocab.get_token_from_index(x, namespace="tokens") for x in predicted_id.ravel()
         ]
+        output_dict["token_ids"] = list(predicted_id.ravel())
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {
-            "perplexity": self.metric.get_metric(reset),
+            "perplexity": self.perplexity.get_metric(reset),
+            "word_perplexity": self.word_perplexity.get_metric(reset),
         }
 
     def count_parameters(self):

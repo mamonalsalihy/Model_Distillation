@@ -1,34 +1,31 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
-// local root = '/home/offendo/src/the-count/';
+local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
 local lr = 2.5e-4;
-local decay = 0.0;
-local batch_size = 32;
+local decay = 1e-4;
+local batch_size = 16;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 30;
-local patience = 10;
-local dropout = 0.1;
+local epochs = 50;
+local patience = 5;
+local dropout = 0.3;
 
 // Student
-local num_layers = 4;
-local embedding_dim = 256;
+local num_layers = 6;
+local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
+local num_attention_heads = 12;
 
-// Teacher
-local teacher_num_layers = 16;
-local teacher_embedding_dim = 768;
-local teacher_hidden_dim = teacher_embedding_dim * 4;
-local teacher_num_attention_heads = 12;
+local teacher_model = '/saved-experiments/backwards-baseline-138M-4/model.tar.gz';
 
-local teacher_weights = '/data/users/nilay/redo-the-count/logs/new_model_weights.pt';
+// Hyper params
+local temperature = 3;
+local hard_label_weight = 0.1;
 
 local cuda_devices = [1, 2];
-local cuda_device = 0;
+local cuda_device = 3;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -55,6 +52,8 @@ local eval_reader = {
   },
   model: {
     type: 'teacher-student-language-model',
+    temperature: temperature,
+    hard_label_weight: hard_label_weight,
     student: {
       type: 'simple-transformer-language-model',
       embedding_dim: embedding_dim,
@@ -75,25 +74,9 @@ local eval_reader = {
       },
     },
     teacher: {
-      type: 'simple-transformer-language-model',
-      embedding_dim: teacher_embedding_dim,
-      embedder: {
-        embedding_dim: teacher_embedding_dim,
-      },
-      pos_embedder: {
-        embedding_dim: teacher_embedding_dim,
-        num_embeddings: sequence_length,
-      },
-      decoder: {
-        type: 'gpt2-transformer-decoder',
-        input_dim: teacher_embedding_dim,
-        hidden_dim: teacher_hidden_dim,
-        num_attention_heads: teacher_num_attention_heads,
-        num_layers: teacher_num_layers,
-        dropout: dropout,
-      },
+      type: 'from_archive',
+      archive_file: root + teacher_model,
     },
-    teacher_state_dict: teacher_weights,
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
   validation_data_path: root + 'data/wikitext-103/wiki.valid.tokens',
@@ -125,11 +108,10 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    // learning_rate_scheduler: {
-    //   type: 'cosine_with_warmup',
-    //   num_training_steps: 14085 * epochs ,
-    //   num_warmup_steps: 5000,
-    // },
+    learning_rate_scheduler: {
+      type: 'cosine',
+      t_initial: epochs,
+    },
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [

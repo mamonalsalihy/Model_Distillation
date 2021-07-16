@@ -19,6 +19,7 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 # Modules
 from allennlp.modules import Embedding, TextFieldEmbedder
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.modules.augmented_lstm import AugmentedLstm
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 
 # Inference
@@ -33,31 +34,24 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 # Local
 from src.count import config
 from src.count.data import WikiTextReader
+from src.count.decoders.lstm_decoder import LSTMDecoder
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
+from src.count.models.base_lstm import SimpleLSTMLanguageModel
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
-
 
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
-    # Build tokenizer
-    # ===============
-    wiki_tokenizer = WikiTextTokenizer(
-        tokenizer_path=config.TOKENIZER,
-        add_special_tokens=True,
-    )
-
     # Build reader
     # ============
     reader = WikiTextReader(
-        context=config.CONTEXT_WINDOW,
-        tokenizer=wiki_tokenizer,
+        sequence_length=config.CONTEXT_WINDOW,
+        tokenizer_path=config.TOKENIZER,
         token_indexers={"tokens": SingleIdTokenIndexer(namespace="tokens")},
         exclusive=True,
-        split_on="sentence",
-        min_context_len=2,
+        lstm=True,
         manual_distributed_sharding=True,
         manual_multiprocess_sharding=True,
         max_instances=config.MAX_INSTANCES,
@@ -97,29 +91,33 @@ if __name__ == "__main__":
     )
     val_data_loader.index_with(vocab)
 
-    for i in train_data_loader:
-        print(i)
-        input()
+    decoder = LSTMDecoder(input_dim=config.EMBEDDING_DIMENSION, hidden_dim=config.HIDDEN_DIMENSION,
+                            num_layers=config.NUM_LAYERS,
+                            use_highway=False, go_forward=True)
 
-    # Make our custom decoder
-    # =======================
-    decoder = TransformerDecoder(
-        input_dim=config.EMBEDDING_DIMENSION,
-        num_attention_heads=config.NUM_ATTENTION_HEADS,
-        num_layers=config.TRANSFORMER_LAYERS,
-        hidden_dim=config.HIDDEN_DIMENSION,
-        dropout=config.DROPOUT,
-        activation=config.ACTIVATION,
-        norm=None,
-    )
+    model = SimpleLSTMLanguageModel(decoder, embedder, vocab, config.HIDDEN_DIMENSION, config.DROPOUT)
 
-    model = SimpleTransformerLanguageModel(
-        vocab=vocab,
-        embedder=embedder,
-        decoder=decoder.to(config.DEVICE_1),
-        hidden_size=config.EMBEDDING_DIMENSION,
-    )
+    torch.set_printoptions(threshold=10_000)
 
+    # # Make our custom decoder
+    # # =======================
+    # decoder = TransformerDecoder(
+    #     input_dim=config.EMBEDDING_DIMENSION,
+    #     num_attention_heads=config.NUM_ATTENTION_HEADS,
+    #     num_layers=config.TRANSFORMER_LAYERS,
+    #     hidden_dim=config.HIDDEN_DIMENSION,
+    #     dropout=config.DROPOUT,
+    #     activation=config.ACTIVATION,
+    #     norm=None,
+    # )
+    #
+    # model = SimpleTransformerLanguageModel(
+    #     vocab=vocab,
+    #     embedder=embedder,
+    #     decoder=decoder.to(config.DEVICE_1),
+    #     hidden_size=config.EMBEDDING_DIMENSION,
+    # )
+    #
     trainer = GradientDescentTrainer(
         model=model.to(config.DEVICE_1),
         data_loader=train_data_loader,
@@ -127,13 +125,13 @@ if __name__ == "__main__":
         validation_data_loader=val_data_loader,
         num_epochs=config.NUM_EPOCHS,
         patience=config.PATIENCE,
-        optimizer=torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE),
+        optimizer=torch.optim.Adagrad(model.parameters(), lr=config.LEARNING_RATE),
         cuda_device=config.DEVICE_1,
     )
 
     # note, count_parmeters now returns a string for easier readability
     print("parameters:", model.count_parameters())
-    print(get_model_size(model, saved=False))
+    print("Memory ", get_model_size(model, saved=False))
 
     # Run training
     # ============

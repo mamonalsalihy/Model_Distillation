@@ -48,7 +48,6 @@ class WikiTextReader(DatasetReader):
         token_indexers: Dict[str, TokenIndexer] = None,
         exclusive: bool = True,
         lstm: bool = False,
-        max_seq_len: int = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -57,7 +56,6 @@ class WikiTextReader(DatasetReader):
         self.token_indexers = token_indexers
         self.exclusive = exclusive
         self.lstm = lstm
-        self.max_seq_len = max_seq_len
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         cache = Path(f"{file_path}.cache")
@@ -94,40 +92,31 @@ class WikiTextReader(DatasetReader):
             with open(cache, "wb") as f:
                 torch.save(dataset, f)
 
-        # ratio to use when calculating word level perplexity
-        ratio = len(dataset["subwords"]) / sum(dataset["num_words"])
-        yield from self.tensor_to_instances(dataset["subwords"], ratio.item())
+        yield from self.tensor_to_instances(dataset["subwords"])
 
-    def tensor_to_instances(self, subwords: torch.Tensor, ratio: float):
-        logger.info("Building instances...")
+    def tensor_to_instances(self, subwords: torch.Tensor):
         if self.lstm:
             eos_idx = self.tokenizer.token_to_id("[SEP]")
             sequence_indices = (subwords == eos_idx).nonzero()
             start = 0
             for i, end in enumerate(sequence_indices):
                 seq = subwords[start : end + 1]
-                if seq.size(0) < self.max_seq_len:
-                    yield Instance({"tokens": TensorField(seq), 'sequence_len': MetadataField(len(seq) - 1)})
+                yield Instance({"tokens": TensorField(seq)})
                 start = end + 1
-        elif self.exclusive:
+        else:
             num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length
             sequences = subwords.narrow(0, 0, num_sequences).view(-1, self.sequence_length)
+            logger.info("Yielding...")
             for inst in sequences:
-                yield Instance({"tokens": TensorField(inst), "ratio": FlagField(ratio)})
-        else:
-            for end_idx in range(1, len(subwords)):
-                start_idx = max(0, end_idx - self.sequence_length)
-                inst = subwords[start_idx : end_idx + 1]
-                yield Instance({"tokens": TensorField(inst), "ratio": FlagField(ratio)})
+                yield Instance({"tokens": TensorField(inst)})
 
     def text_to_instance(
         self,
-        text: str,
+        tokens: List[str],
+        num_words: int,
     ) -> Instance:
-        tokens = torch.tensor(self.tokenizer(text).ids, dtype=torch.long)
-        num_words = len(text.split())
-        ratio = len(tokens) // num_words
-        return Instance({"tokens": TensorField(tokens), "ratio": FlagField(ratio)})
+        tokens = [Token(t) for t in tokens]
+        return Instance({"tokens": TextField(tokens), "num_words": MetadataField(num_words)})
 
     def apply_token_indexers(self, instance) -> None:
         """Adds a token indexer to the instance. Automatically called by AllenNLP."""
@@ -137,18 +126,16 @@ class WikiTextReader(DatasetReader):
 
 if __name__ == "__main__":
     reader = WikiTextReader(
-        sequence_length=4,
+        sequence_length=128,
         tokenizer_path=config.TOKENIZER,
         max_instances=None,
-        lstm=False,
-        max_seq_len=1028,
-        exclusive=True,
+        lstm=True,
     )
 
     loader = MultiProcessDataLoader(
         reader,
-        data_path=os.path.join(config.WIKI_DIR, "wiki.valid.tokens"),
-        batch_size=2,
+        data_path=os.path.join(config.WIKI_DIR, "wiki.test.tokens"),
+        batch_size=32,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
     loader.index_with(vocab)
@@ -156,7 +143,3 @@ if __name__ == "__main__":
     for i in tqdm(loader):
         print(i["tokens"])
         input()
-
-    # Valid ratio: 1.1494
-    # Test ratio:  1.1537
-    # Train ratio: 1.1633

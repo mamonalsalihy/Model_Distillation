@@ -49,9 +49,9 @@ from src.utils.misc_utils import get_model_size
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
-    config_file = "../configs/student/new-student.jsonnet"
+    config_file = "../../configs/baseline/base-lstm.jsonnet"
 
-    serialization_dir = "experiments/student_test"
+    serialization_dir = "experiments/baseline_temp"
 
     # Training will fail if the serialization directory already
     # has stuff in it. If you are running the same training loop

@@ -52,9 +52,11 @@ class SimpleTransformerLanguageModel(Transformer):
 
     def forward(
         self,
-        tokens: TensorDict,
+        tokens: torch.Tensor,
+        ratio: float,
+        only_predict_next: bool = False,
     ) -> Dict[str, torch.Tensor]:
         # Flip them around if it's backwards
         if self.backward:
             tokens = torch.flip(tokens, dims=[1])  # shape: [B, S]
-        return super().forward(tokens)
+        return super().forward(tokens, ratio, only_predict_next)

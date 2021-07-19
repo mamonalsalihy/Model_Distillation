@@ -87,7 +87,7 @@ class DualDirectionalModel(Model):
 
         logits[:-1, :, :] += forward_logits[:-1, :, :] / 2  # 2 -> N-1
         logits[-1, :, :] += forward_logits[-1, :, :]  # N
-        logits[:-1, , :] += backward_logits[1:, :, :] / 2  # 2 -> N-1
+        logits[:-1, :, :] += backward_logits[1:, :, :] / 2  # 2 -> N-1
 
         # Calculate loss
         # ==============

@@ -3,21 +3,21 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
-local lr = 2.5e-4;
+local lr = 1e-3;
 local decay = 0.00;
-local batch_size = 8;
+local batch_size = 16;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local cosine_epochs = 49;
-local patience = 3;
-local dropout = 0.1;
+local patience = 5;
+local dropout = 0.4;
 
 // Model config
 local forward_path = root + '/saved-experiments/138M-model/';
 local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/model.tar.gz';
 
-local cuda_devices = [2, 3, 4, 5];
+local cuda_devices = [2, 3];
 local cuda_device = 0;
 
 local train_reader = {

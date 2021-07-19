@@ -3,7 +3,7 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
-local lr = 1e-3;
+local lr = 1e-4;
 local decay = 0.00;
 local batch_size = 8;
 local max_instances = null;
@@ -98,7 +98,7 @@ local eval_reader = {
       }],
       ],
     },
-    // cuda_device: cuda_device,
+    cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -106,7 +106,7 @@ local eval_reader = {
       },
     ],
   },
-  distributed: {
-    cuda_devices: cuda_devices,
-  },
+//  distributed: {
+//    cuda_devices: cuda_devices,
+//  },
 }

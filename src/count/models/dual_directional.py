@@ -77,22 +77,7 @@ class DualDirectionalModel(Model):
         backward = self.backward_model.forward(tokens, ratio)
 
         forward_logits = forward["logits"]  # Logits for tokens 2 -> N
-        # TODO: need to examine if this backwards is the right way
-        # currently it looks like the output is completely wrong, these models are not aligned right
         backward_logits = torch.flip(backward["logits"], dims=[1])  # Logits for tokens 1 -> N-1
-
-        # print('forward preds \n'
-        #       '=============')
-        # print(torch.argmax(forward_logits, dim=1))
-        # print('backward preds \n'
-        #       '==============')
-        # print(torch.argmax(backward_logits, dim=1))
-        print(forward_logits[:-1, :, :].size())
-        print(backward_logits[1:, :, :].size())
-        print('=========================')
-        for x, y in zip(torch.argmax(forward_logits[:-1, :, :], dim=0).view(-1),
-                        torch.argmax(backward_logits[1:, :, :], dim=0).view(-1)):
-            print("%d \t %d" % (x.item(), y.item()))
 
         # we don't need to consider the logits for the first token
         # we need to weight logits 2 -> N-1
@@ -100,9 +85,9 @@ class DualDirectionalModel(Model):
         B, Nm1, D = forward_logits.shape
         logits = torch.zeros(size=(B, Nm1, D), device=forward_logits.device, dtype=torch.float)  # 2 -> N
 
-        logits[:, :-1, :] += forward_logits[:, :-1, :] / 2  # 2 -> N-1
-        logits[:, -1, :] += forward_logits[:, -1, :]  # N
-        logits[:, :-1, :] += backward_logits[:, 1:, :] / 2  # 2 -> N-1
+        logits[:-1, :, :] += forward_logits[:-1, :, :] / 2  # 2 -> N-1
+        logits[-1, :, :] += forward_logits[-1, :, :]  # N
+        logits[:-1, , :] += backward_logits[1:, :, :] / 2  # 2 -> N-1
 
         # Calculate loss
         # ==============

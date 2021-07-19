@@ -48,6 +48,7 @@ class WikiTextReader(DatasetReader):
         token_indexers: Dict[str, TokenIndexer] = None,
         exclusive: bool = True,
         lstm: bool = False,
+        max_seq_len: int = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -56,6 +57,7 @@ class WikiTextReader(DatasetReader):
         self.token_indexers = token_indexers
         self.exclusive = exclusive
         self.lstm = lstm
+        self.max_seq_len = max_seq_len
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         cache = Path(f"{file_path}.cache")
@@ -104,7 +106,8 @@ class WikiTextReader(DatasetReader):
             start = 0
             for i, end in enumerate(sequence_indices):
                 seq = subwords[start : end + 1]
-                yield Instance({"tokens": TensorField(seq), 'sequence_len': MetadataField(len(seq) - 1)})
+                if self.max_seq_len is None or seq.size(0) < self.max_seq_len:
+                    yield Instance({"tokens": TensorField(seq), 'sequence_len': MetadataField(len(seq) - 1), 'ratio': FlagField(ratio)})
                 start = end + 1
         elif self.exclusive:
             num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length
@@ -137,8 +140,9 @@ if __name__ == "__main__":
         sequence_length=4,
         tokenizer_path=config.TOKENIZER,
         max_instances=None,
-        lstm=False,
-        exclusive=True,
+        lstm=True,
+        max_seq_len=256,
+        exclusive=False,
     )
 
     loader = MultiProcessDataLoader(
@@ -150,8 +154,8 @@ if __name__ == "__main__":
     loader.index_with(vocab)
     print("Ready...")
     for i in tqdm(loader):
-        print(i["tokens"])
-        input()
+        print(i["tokens"].size())
+        # input()
 
     # Valid ratio: 1.1494
     # Test ratio:  1.1537

@@ -60,7 +60,8 @@ class SimpleLSTMLanguageModel(Model):
         self.init_weights()
 
         # Metrics
-        self.metric = Perplexity()
+        self.perplexity = Perplexity()
+        self.word_perplexity = Perplexity()
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_INDX, reduction="mean")
 
         logger.info("Number of parameters: %s", self.count_parameters())
@@ -72,6 +73,7 @@ class SimpleLSTMLanguageModel(Model):
             self,
             tokens: TensorDict,
             sequence_len: list,
+            ratio: float,
     ) -> Dict[str, torch.Tensor]:
         # Input representation for training.
         tokens = tokens.transpose(0, 1)
@@ -98,14 +100,16 @@ class SimpleLSTMLanguageModel(Model):
 
         # metrics and loss
         loss = self.loss(preds, reals)
-        self.metric(loss)
+        self.perplexity(loss)
+        self.word_perplexity(loss * ratio)
 
         # Normalize to probabilities for the prediction.
         return {"logits": logits, "loss": loss}
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {
-            "perplexity": self.metric.get_metric(reset),
+            "perplexity": self.perplexity.get_metric(reset),
+            "word_perplexity": self.word_perplexity.get_metric(reset),
         }
 
     def count_parameters(self):

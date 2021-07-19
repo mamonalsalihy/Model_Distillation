@@ -1,17 +1,17 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
 local sequence_length = 256;
 local lr = 2.5e-4;
 local decay = 0.00;
-local batch_size = 4;
-local max_instances = 16;
+local batch_size = 32;
+local max_instances = null;
 local max_instances_memory = null;
-local epochs = 999;
+local epochs = 50;
 local cosine_epochs = 49;
-local patience = 999;
+local patience = 5;
 local dropout = 0.0;
 
 // Model config
@@ -95,21 +95,21 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
-    // learning_rate_scheduler: {
-    //   type: 'combined',
-    //   schedulers: [
-    //     [1, {
-    //       type: 'linear_with_warmup',
-    //       warmup_steps: 10000,
-    //       num_epochs: 1,
-    //     }],
-    //     [epochs - 1, {
-    //       type: 'cosine',
-    //       t_initial: epochs - 1,
-    //     }],
-    //   ],
-    // },
-    cuda_device: cuda_device,
+    learning_rate_scheduler: {
+      type: 'combined',
+      schedulers: [
+        [1, {
+          type: 'linear_with_warmup',
+          warmup_steps: 10000,
+          num_epochs: 1,
+        }],
+        [epochs - 1, {
+          type: 'cosine',
+          t_initial: epochs - 1,
+        }],
+      ],
+    },
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -117,7 +117,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

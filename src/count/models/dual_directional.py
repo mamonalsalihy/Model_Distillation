@@ -87,7 +87,7 @@ class DualDirectionalModel(Model):
         # print('backward preds \n'
         #       '==============')
         # print(torch.argmax(backward_logits, dim=1))
-
+        print(forward_logits.size())
         print('=========================')
         for x, y in zip(torch.argmax(forward_logits[:, :-1, :], dim=1).view(-1),
                         torch.argmax(backward_logits[:, 1:, :], dim=1).view(-1)):

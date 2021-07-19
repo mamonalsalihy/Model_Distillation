@@ -89,8 +89,8 @@ class DualDirectionalModel(Model):
         # print(torch.argmax(backward_logits, dim=1))
         print(forward_logits.size())
         print('=========================')
-        for x, y in zip(torch.argmax(forward_logits[:, :, -1], dim=1).view(-1),
-                        torch.argmax(backward_logits[:, :, 1:], dim=1).view(-1)):
+        for x, y in zip(torch.argmax(forward_logits[:, :, -1], dim=2).view(-1),
+                        torch.argmax(backward_logits[:, :, 1:], dim=2).view(-1)):
             print("%d \t %d" % (x.item(), y.item()))
 
         # we don't need to consider the logits for the first token

@@ -17,7 +17,7 @@ local dropout = 0.1;
 local forward_path = root + '/saved-experiments/138M-model/';
 local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/model.tar.gz';
 
-local cuda_devices = [2, 3];
+local cuda_devices = [2, 3, 4, 5];
 local cuda_device = 0;
 
 local train_reader = {
@@ -98,7 +98,7 @@ local eval_reader = {
       }],
       ],
     },
-    cuda_device: cuda_device,
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -106,7 +106,7 @@ local eval_reader = {
       },
     ],
   },
-/*  distributed: {
+  distributed: {
     cuda_devices: cuda_devices,
-  },*/
+  },
 }

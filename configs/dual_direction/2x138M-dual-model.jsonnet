@@ -3,15 +3,15 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
-local lr = 2.5e-4;
+local lr = 1e-4;
 local decay = 0.00;
 local batch_size = 8;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local cosine_epochs = 49;
-local patience = 3;
-local dropout = 0.1;
+local patience = 5;
+local dropout = 0.4;
 
 // Model config
 local forward_path = root + '/saved-experiments/138M-model/';
@@ -106,7 +106,7 @@ local eval_reader = {
       },
     ],
   },
-/*  distributed: {
-    cuda_devices: cuda_devices,
-  },*/
+//  distributed: {
+//    cuda_devices: cuda_devices,
+//  },
 }

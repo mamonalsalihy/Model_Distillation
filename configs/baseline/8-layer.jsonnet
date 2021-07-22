@@ -108,7 +108,7 @@ local eval_reader = {
       }],
       ],
     },
-    // cuda_device: cuda_device,
+    cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -116,7 +116,7 @@ local eval_reader = {
       },
     ],
   },
-  distributed: {
-    cuda_devices: cuda_devices,
-  },
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

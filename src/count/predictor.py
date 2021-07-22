@@ -16,8 +16,8 @@ from tokenizers import Tokenizer
 
 # Local
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from models.simple_transformer import SimpleTransformerLanguageModel
-from decoders.transformer_decoder import TransformerDecoder
+from src.count.models.simple_transformer import SimpleTransformerLanguageModel
+from src.count.decoders.transformer_decoder import TransformerDecoder
 
 
 

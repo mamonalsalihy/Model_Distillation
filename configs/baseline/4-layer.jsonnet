@@ -8,15 +8,15 @@ local decay = 0.00;
 local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 30;
+local epochs = 50;
 local patience = 5;
-local dropout = 0.1;
+local dropout = 0.2;
 
 // Model config
 local num_layers = 4;
-local embedding_dim = 256;
+local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
+local num_attention_heads = 12;
 local activation = 'relu';
 
 local cuda_devices = [1, 2];

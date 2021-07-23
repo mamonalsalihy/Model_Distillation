@@ -27,7 +27,7 @@ local temperature = 3;
 local hard_label_weight = 0.3;
 
 local cuda_devices = [1, 2];
-local cuda_device = 1;
+local cuda_device = 2;
 
 local train_reader = {
   type: 'wikitext-reader',

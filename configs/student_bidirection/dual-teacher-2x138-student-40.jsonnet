@@ -3,14 +3,14 @@ local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
-local lr = 2.5e-4;
+local lr = 1e-3;
 local decay = 1e-4;
-local batch_size = 16;
+local batch_size = 8;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 5;
-local dropout = 0.3;
+local dropout = 0.5;
 
 // Student
 local num_layers = 8;
@@ -18,7 +18,7 @@ local embedding_dim = 512;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 8;
 
-local teacher_model = '/saved-experiments/backwards-baseline-138M-4/model.tar.gz';
+local teacher_model = '/saved-experiments/dual-real-1/model.tar.gz';
 
 // Hyper params
 local temperature = 3;

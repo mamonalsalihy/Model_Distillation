@@ -117,7 +117,7 @@ local eval_reader = {
     grad_norm: 0.25,
     callbacks: [
       {
-        type: 'tensorboard',
+        type: 'tensorboard', should_log_learning_rate: true,
       },
     ],
   },

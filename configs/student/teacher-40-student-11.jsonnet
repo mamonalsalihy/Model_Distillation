@@ -112,15 +112,15 @@ local eval_reader = {
     learning_rate_scheduler: {
       type: 'combined',
       schedulers: [
-      [1, {
-        type: 'linear_with_warmup',
-        warmup_steps: 10000,
-        num_epochs: 1,
-      }],
-      [epochs - 1, {
-        type: 'cosine',
-        t_initial: epochs-1,
-      }],
+        [1, {
+          type: 'linear_with_warmup',
+          warmup_steps: 10000,
+          num_epochs: 1,
+        }],
+        [epochs - 1, {
+          type: 'cosine',
+          t_initial: epochs - 1,
+        }],
       ],
     },
     cuda_device: cuda_device,
@@ -128,6 +128,7 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },

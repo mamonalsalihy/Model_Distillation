@@ -74,6 +74,12 @@ class StudentLanguageModel(Transformer):
         only_predict_next: bool = False,
     ) -> Dict[str, torch.Tensor]:
 
+        # Get teacher outputs first, before we flip the tokens to [S, B]
+        with torch.no_grad():
+            t_out = self.teacher(tokens, ratio)
+            t_logits = t_out["logits"]
+            t_loss = t_out["loss"]
+
         tokens = tokens.transpose(0, 1)  # new shape [S+1, B]
         source = tokens[:-1]  # [S, B]
         labels = tokens[1:]  # [S, B]
@@ -86,10 +92,6 @@ class StudentLanguageModel(Transformer):
         # Make prediction
         # ===============
         logits = self._predict(embeddings)
-        with torch.no_grad():
-            t_out = self.teacher(tokens, ratio)
-            t_logits = t_out["logits"]
-            t_loss = t_out["loss"]
 
         if only_predict_next:  # inference; only care about final value
             logits = logits[-1:]  # shapes: [1, B]

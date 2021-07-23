@@ -107,7 +107,13 @@ class WikiTextReader(DatasetReader):
             for i, end in enumerate(sequence_indices):
                 seq = subwords[start : end + 1]
                 if self.max_seq_len is None or seq.size(0) < self.max_seq_len:
-                    yield Instance({"tokens": TensorField(seq), 'sequence_len': MetadataField(len(seq) - 1), 'ratio': FlagField(ratio)})
+                    yield Instance(
+                        {
+                            "tokens": TensorField(seq),
+                            "sequence_len": MetadataField(len(seq) - 1),
+                            "ratio": FlagField(ratio),
+                        }
+                    )
                 start = end + 1
         elif self.exclusive:
             num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length

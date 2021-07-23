@@ -65,7 +65,7 @@ class StudentLanguageModel(Transformer):
         s = torch.log_softmax(logits / self.T, dim=-1)
         t = torch.softmax(softs / self.T, dim=-1)
 
-        return self.kl_loss_fn(s, t)
+        return (self.T ** 2) * self.kl_loss_fn(s, t)
 
     def forward(
         self,
@@ -87,7 +87,7 @@ class StudentLanguageModel(Transformer):
         # ===============
         logits = self._predict(embeddings)
         with torch.no_grad():
-            t_out = self.teacher(tokens)
+            t_out = self.teacher(tokens, ratio)
             t_logits = t_out["logits"]
             t_loss = t_out["loss"]
 

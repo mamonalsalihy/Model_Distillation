@@ -10,11 +10,11 @@ local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local cosine_epochs = 49;
-local patience = 3;
-local dropout = 0.1;
+local patience = 5;
+local dropout = 0.2;
 
 // Model config
-local num_layers = 16;
+local num_layers = 2;
 local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
@@ -108,7 +108,7 @@ local eval_reader = {
       }],
       ],
     },
-    // cuda_device: cuda_device,
+    cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -116,7 +116,7 @@ local eval_reader = {
       },
     ],
   },
-  distributed: {
-    cuda_devices: cuda_devices,
-  },
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

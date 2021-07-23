@@ -1,6 +1,6 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
 local sequence_length = 256;

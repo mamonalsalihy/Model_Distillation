@@ -3,14 +3,14 @@ local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
-local lr = 1e-3;
+local lr = 1e-4;
 local decay = 1e-4;
 local batch_size = 8;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 5;
-local dropout = 0.5;
+local dropout = 0.3;
 
 // Student
 local num_layers = 10;
@@ -22,10 +22,10 @@ local teacher_model = '/saved-experiments/dual-real-1/model.tar.gz';
 
 // Hyper params
 local temperature = 3;
-local hard_label_weight = 0.1;
+local hard_label_weight = 0.3;
 
 local cuda_devices = [1, 2];
-local cuda_device = 2;
+local cuda_device = 0;
 
 local train_reader = {
   type: 'wikitext-reader',

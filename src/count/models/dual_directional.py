@@ -80,13 +80,6 @@ class DualDirectionalModel(Model):
         forward_logits = forward["logits"]  # Logits for tokens 2 -> N
         backward_logits = torch.flip(backward["logits"], dims=[0])  # Logits for tokens 1 -> N-1
 
-        print(forward_logits[:-1, :, :].size())
-        print(backward_logits[1:, :, :].size())
-        print('=========================')
-        for x, y in zip(torch.argmax(forward_logits[:-1, :, :], dim=2).view(-1),
-                        torch.argmax(backward_logits[1:, :, :], dim=2).view(-1)):
-            print("%d \t %d" % (x.item(), y.item()))
-
         # we don't need to consider the logits for the first token
         # we need to weight logits 2 -> N-1
         # logits for N don't need to be weighted

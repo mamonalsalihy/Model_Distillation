@@ -36,12 +36,12 @@ class LMInference:
         # only for evaluation
         self.model.eval()
 
-    def predict_continuation(self, text: str, n: int):
+    def predict_continuation(self, text: str, n: int, ratio: float):
         ids = self.tokenizer.encode(text).ids[:-1]
         for i in range(n):
             x = torch.tensor(ids, dtype=torch.long, device="cpu").view(1, -1)
             with torch.no_grad():
-                output = self.model.forward(x, only_predict_next=True)
+                output = self.model.forward(x, ratio, only_predict_next=True)
             output = self.model.make_output_human_readable(output)
             new_ids = list(output["token_ids"])
             ids.append(new_ids[-1])

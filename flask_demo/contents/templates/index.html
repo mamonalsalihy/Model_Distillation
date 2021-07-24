@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %} The CoUnT{% endblock %}
+{% block inputs %}
+<div class="container">
+    <br/><br/>
+    <h1 class="header_page">Let the CoUnT tell you something!</h1>
+    <br/>
+    <form action="/" method="POST">
+        <div class="form-group">
+            <label for="inputQueryText">Input Query</label>
+            <input type="text" class="form-control" id="inputQueryText" aria-describedby="emailHelp"
+                   placeholder="Enter query" name="query">
+            <br/>
+        </div>
+        <div class="button">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </form>
+    <h1>{{query}}</h1>
+</div>
+{% endblock %}

@@ -90,10 +90,10 @@ class SimpleLSTMLanguageModel(Model):
         # Feed the packed tensors into the LSTM
         decoded, hidden = self.decoder(packed_input)
         # Unpack the tensors to feed into the linear layer
-        unpacked_input, unpacked_lengths = pad_packed_sequence(decoded, batch_first=False)
+        unpacked_input, unpacked_lengths = pad_packed_sequence(decoded, padding_value=self.PAD_INDX, batch_first=False)
 
-        decoded = self.drop(unpacked_input)
-        logits = self.lm_head(decoded)
+        logits = self.lm_head(unpacked_input)
+        logits = self.drop(logits)
 
         preds = logits.reshape(-1, self.vocab_size)
         reals = labels.reshape(-1)

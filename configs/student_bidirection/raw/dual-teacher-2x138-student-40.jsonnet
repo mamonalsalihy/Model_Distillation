@@ -3,9 +3,9 @@ local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
-local lr = 2.5e-4;
+local lr = 1e-4;
 local decay = 1e-4;
-local batch_size = 16;
+local batch_size = 8;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
@@ -13,19 +13,21 @@ local patience = 5;
 local dropout = 0.3;
 
 // Student
-local num_layers = 6;
-local embedding_dim = 768;
+local num_layers = 8;
+local embedding_dim = 512;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 12;
+local num_attention_heads = 8;
 
-local teacher_model = '/saved-experiments/backwards-baseline-138M-4/model.tar.gz';
+// Model config
+local forward_path = root + '/saved-experiments/138M-model/';
+local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/model.tar.gz';
 
 // Hyper params
 local temperature = 3;
-local hard_label_weight = 0.1;
+local hard_label_weight = 0.3;
 
 local cuda_devices = [1, 2];
-local cuda_device = 3;
+local cuda_device = 2;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -74,8 +76,15 @@ local eval_reader = {
       },
     },
     teacher: {
-      type: 'from_archive',
-      archive_file: root + teacher_model,
+        type: 'dual-directional-language-model',
+        forward_model: {
+            type: 'from_archive',
+            archive_file: '/data/users/nilay/the-count/saved-experiments/138M-model/',
+        },
+        backward_model: {
+            type: 'from_archive',
+            archive_file: backward_path,
+        },
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',

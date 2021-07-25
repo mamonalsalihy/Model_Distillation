@@ -1,24 +1,31 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
+local root = '/data/users/aukking/Model_Distillation/';
 
 // Training
 local sequence_length = 256;
 local lr = 1e-4;
-local decay = 0.00;
+local decay = 1e-4;
 local batch_size = 8;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
-local cosine_epochs = 49;
 local patience = 5;
 local dropout = 0.3;
 
-// Model config
-local forward_path = root + '/saved-experiments/138M-model/';
-local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/model.tar.gz';
+// Student
+local num_layers = 6;
+local embedding_dim = 768;
+local hidden_dim = embedding_dim * 4;
+local num_attention_heads = 12;
 
-local cuda_devices = [2, 3];
-local cuda_device = 4;
+local teacher_model = '/saved-experiments/dual-real-1/model.tar.gz';
+
+// Hyper params
+local temperature = 3;
+local hard_label_weight = 0.3;
+
+local cuda_devices = [1, 2];
+local cuda_device = 1;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -44,14 +51,31 @@ local eval_reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'dual-directional-language-model',
-    forward_model: {
-        type: 'from_archive',
-        archive_file: '/data/users/nilay/the-count/saved-experiments/138M-model/',
+    type: 'teacher-student-language-model',
+    temperature: temperature,
+    hard_label_weight: hard_label_weight,
+    student: {
+      type: 'simple-transformer-language-model',
+      embedding_dim: embedding_dim,
+      embedder: {
+        embedding_dim: embedding_dim,
+      },
+      pos_embedder: {
+        embedding_dim: embedding_dim,
+        num_embeddings: sequence_length,
+      },
+      decoder: {
+        type: 'gpt2-transformer-decoder',
+        input_dim: embedding_dim,
+        hidden_dim: hidden_dim,
+        num_attention_heads: num_attention_heads,
+        num_layers: num_layers,
+        dropout: dropout,
+      },
     },
-    backward_model: {
-        type: 'from_archive',
-        archive_file: backward_path,
+    teacher: {
+      type: 'from_archive',
+      archive_file: root + teacher_model,
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
@@ -85,18 +109,8 @@ local eval_reader = {
       weight_decay: decay,
     },
     learning_rate_scheduler: {
-      type: 'combined',
-      schedulers: [
-      [1, {
-        type: 'linear_with_warmup',
-        warmup_steps: 10000,
-        num_epochs: 1,
-      }],
-      [epochs - 1, {
-        type: 'cosine',
-        t_initial: epochs-1,
-      }],
-      ],
+      type: 'cosine',
+      t_initial: epochs,
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,
@@ -106,7 +120,7 @@ local eval_reader = {
       },
     ],
   },
-//  distributed: {
-//    cuda_devices: cuda_devices,
-//  },
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

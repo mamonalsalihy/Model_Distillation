@@ -46,12 +46,12 @@ local eval_reader = {
   model: {
     type: 'dual-directional-language-model',
     forward_model: {
-        type: 'from_archive',
-        archive_file: '/data/users/nilay/the-count/saved-experiments/138M-model/',
+      type: 'from_archive',
+      archive_file: '/data/users/nilay/the-count/saved-experiments/138M-model/',
     },
     backward_model: {
-        type: 'from_archive',
-        archive_file: backward_path,
+      type: 'from_archive',
+      archive_file: backward_path,
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
@@ -87,15 +87,15 @@ local eval_reader = {
     learning_rate_scheduler: {
       type: 'combined',
       schedulers: [
-      [1, {
-        type: 'linear_with_warmup',
-        warmup_steps: 10000,
-        num_epochs: 1,
-      }],
-      [epochs - 1, {
-        type: 'cosine',
-        t_initial: epochs-1,
-      }],
+        [1, {
+          type: 'linear_with_warmup',
+          warmup_steps: 10000,
+          num_epochs: 1,
+        }],
+        [epochs - 1, {
+          type: 'cosine',
+          t_initial: epochs - 1,
+        }],
       ],
     },
     cuda_device: cuda_device,
@@ -103,10 +103,11 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },
-//  distributed: {
-//    cuda_devices: cuda_devices,
-//  },
+  //  distributed: {
+  //    cuda_devices: cuda_devices,
+  //  },
 }

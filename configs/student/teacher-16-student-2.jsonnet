@@ -1,6 +1,5 @@
 // Paths
 local root = '/data/users/nilay/the-count/';
-// local root = '/home/offendo/src/the-count/';
 
 // Training
 local sequence_length = 256;
@@ -10,20 +9,20 @@ local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
-local patience = 3;
+local patience = 5;
 local dropout = 0.1;
 
 // Student
-local num_layers = 4;
-local embedding_dim = 256;
+local num_layers = 2;
+local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
+local num_attention_heads = 12;
 
-local teacher_model = '/saved-experiments/138M-model/';
+local teacher_model = '/saved-experiments/138M-baseline-higher-dropout/';
 
 // Hyper params
-local temperature = 3;
-local hard_label_weight = 0.2;
+local temperature = 2.0;
+local hard_label_weight = 0.5;
 
 local cuda_devices = [1, 2];
 local cuda_device = 0;
@@ -109,11 +108,16 @@ local eval_reader = {
       lr: lr,
       weight_decay: decay,
     },
+    learning_rate_scheduler: {
+      type: 'cosine',
+      t_initial: epochs,
+    },
     cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },

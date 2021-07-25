@@ -64,7 +64,7 @@ local eval_reader = {
       hidden_dim: hidden_dim,
       num_layers: num_layers,
       use_highway: use_highway,
-      go_forward: go_forward
+      go_forward: go_forward,
     },
     hidden_dim: hidden_dim,
     dropout: dropout,
@@ -109,10 +109,11 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },
- distributed: {
-   cuda_devices: cuda_devices,
- },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

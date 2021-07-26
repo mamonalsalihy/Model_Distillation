@@ -10,7 +10,7 @@ local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local cosine_epochs = 49;
-local patience = 3;
+local patience = 5;
 local dropout = 0.2;
 
 // Model config
@@ -95,10 +95,20 @@ local eval_reader = {
       weight_decay: decay,
     },
     learning_rate_scheduler: {
-      type: 'cosine',
-      t_initial: epochs,
+      type: 'combined',
+      schedulers: [
+      [1, {
+        type: 'linear_with_warmup',
+        warmup_steps: 8000,
+        num_epochs: 2,
+      }],
+      [epochs - 1, {
+        type: 'cosine',
+        t_initial: epochs-1,
+      }],
+      ],
     },
-    cuda_device: cuda_device,
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -107,7 +117,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

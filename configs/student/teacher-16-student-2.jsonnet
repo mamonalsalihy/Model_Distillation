@@ -18,7 +18,7 @@ local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 
-local teacher_model = '/saved-experiments/138M-baseline-higher-dropout/';
+local teacher_model = '/saved-experiments/16-layer/';
 
 // Hyper params
 local temperature = 2.0;
@@ -109,8 +109,18 @@ local eval_reader = {
       weight_decay: decay,
     },
     learning_rate_scheduler: {
-      type: 'cosine',
-      t_initial: epochs,
+      type: 'combined',
+      schedulers: [
+      [1, {
+        type: 'linear_with_warmup',
+        warmup_steps: 10000,
+        num_epochs: epochs,
+      }],
+      [epochs - 1, {
+        type: 'cosine',
+        t_initial: epochs-1,
+      }],
+      ],
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,

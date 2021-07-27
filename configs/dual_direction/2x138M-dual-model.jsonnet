@@ -3,22 +3,22 @@ local root = '/data/users/nilay/the-count/';
 
 // Training
 local sequence_length = 256;
-local lr = 2.5e-4;
+local lr = 1e-4;
 local decay = 0.00;
 local batch_size = 8;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local cosine_epochs = 49;
-local patience = 3;
-local dropout = 0.1;
+local patience = 5;
+local dropout = 0.3;
 
 // Model config
 local forward_path = root + '/saved-experiments/138M-model/';
 local backward_path = '/data/users/aukking/Model_Distillation/saved-experiments/backwards-baseline-138M-4/inter_results/model.tar.gz';
 
 local cuda_devices = [2, 3];
-local cuda_device = 0;
+local cuda_device = 4;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -46,12 +46,12 @@ local eval_reader = {
   model: {
     type: 'dual-directional-language-model',
     forward_model: {
-        type: 'from_archive',
-        archive_file: '/data/users/nilay/the-count/saved-experiments/138M-model/',
+      type: 'from_archive',
+      archive_file: '/data/users/nilay/the-count/saved-experiments/138M-model/',
     },
     backward_model: {
-        type: 'from_archive',
-        archive_file: backward_path,
+      type: 'from_archive',
+      archive_file: backward_path,
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',
@@ -87,15 +87,15 @@ local eval_reader = {
     learning_rate_scheduler: {
       type: 'combined',
       schedulers: [
-      [1, {
-        type: 'linear_with_warmup',
-        warmup_steps: 10000,
-        num_epochs: 1,
-      }],
-      [epochs - 1, {
-        type: 'cosine',
-        t_initial: epochs-1,
-      }],
+        [1, {
+          type: 'linear_with_warmup',
+          warmup_steps: 10000,
+          num_epochs: 1,
+        }],
+        [epochs - 1, {
+          type: 'cosine',
+          t_initial: epochs - 1,
+        }],
       ],
     },
     cuda_device: cuda_device,
@@ -103,10 +103,11 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },
-/*  distributed: {
-    cuda_devices: cuda_devices,
-  },*/
+  //  distributed: {
+  //    cuda_devices: cuda_devices,
+  //  },
 }

@@ -110,10 +110,11 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },
- distributed: {
-   cuda_devices: cuda_devices,
- },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

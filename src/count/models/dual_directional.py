@@ -73,11 +73,12 @@ class DualDirectionalModel(Model):
     ) -> Dict[str, torch.Tensor]:
         labels = tokens.transpose(0, 1)[1:]  # [S, B]
 
-        forward = self.forward_model.forward(tokens)
-        backward = self.backward_model.forward(tokens)
+        forward = self.forward_model.forward(tokens, ratio)
+        backward = self.backward_model.forward(tokens, ratio)
 
+        # logits.size() = [seq len, batch_size, vocab len]
         forward_logits = forward["logits"]  # Logits for tokens 2 -> N
-        backward_logits = torch.flip(backward["logits"], dims=[1])  # Logits for tokens 1 -> N-1
+        backward_logits = torch.flip(backward["logits"], dims=[0])  # Logits for tokens 1 -> N-1
 
         # we don't need to consider the logits for the first token
         # we need to weight logits 2 -> N-1
@@ -85,9 +86,9 @@ class DualDirectionalModel(Model):
         B, Nm1, D = forward_logits.shape
         logits = torch.zeros(size=(B, Nm1, D), device=forward_logits.device, dtype=torch.float)  # 2 -> N
 
-        logits[:, :-1, :] += forward_logits[:, :-1, :] / 2  # 2 -> N-1
-        logits[:, -1, :] += forward_logits[:, -1, :]  # N
-        logits[:, :-1, :] += backward_logits[:, 1:, :] / 2  # 2 -> N-1
+        logits[:-1, :, :] += forward_logits[:-1, :, :] / 2  # 2 -> N-1
+        logits[-1, :, :] += forward_logits[-1, :, :]  # N
+        logits[:-1, :, :] += backward_logits[1:, :, :] / 2  # 2 -> N-1
 
         # Calculate loss
         # ==============

@@ -99,9 +99,9 @@ local eval_reader = {
       dropout: dropout,
     },
     teacher: {
-    type: 'from_archive',
-    archive_file: root + teacher_model,
-    }
+      type: 'from_archive',
+      archive_file: root + teacher_model,
+    },
   },
   train_data_path: root + 'data/wikitext-103-raw/wiki.train.raw',
   validation_data_path: root + 'data/wikitext-103-raw/wiki.valid.raw',
@@ -141,6 +141,7 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },

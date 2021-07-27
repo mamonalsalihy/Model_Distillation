@@ -42,14 +42,14 @@ logging.root.setLevel(logging.INFO)
 @DatasetReader.register("wikitext-reader")
 class WikiTextReader(DatasetReader):
     def __init__(
-            self,
-            sequence_length: int,
-            tokenizer_path: str,
-            token_indexers: Dict[str, TokenIndexer] = None,
-            exclusive: bool = True,
-            lstm: bool = False,
-            max_seq_len: int = None,
-            **kwargs,
+        self,
+        sequence_length: int,
+        tokenizer_path: str,
+        token_indexers: Dict[str, TokenIndexer] = None,
+        exclusive: bool = True,
+        lstm: bool = False,
+        max_seq_len: int = None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.sequence_length = sequence_length
@@ -102,18 +102,18 @@ class WikiTextReader(DatasetReader):
         logger.info("Building instances...")
         if self.lstm:
             eos_idx = self.tokenizer.token_to_id("[SEP]")
-            # Nonzero is a util function which returns the indices of nonzero elements from a tensor where the indices are 'coordinates'
-            # subwords is a flattened list of token ids from our dataset(wikitext)
             sequence_indices = (subwords == eos_idx).nonzero()
-            # Line 107 will iterate over every subword id and compare to eos_idx. A bool tensor is returned where True is when the index is EOS.
-            # Sequence indices represents where each sequence ends.
             start = 0
             for i, end in enumerate(sequence_indices):
-                seq = subwords[start: end + 1]
+                seq = subwords[start : end + 1]
                 if self.max_seq_len is None or seq.size(0) < self.max_seq_len:
-                    yield Instance({"tokens": TensorField(seq), 'sequence_len': MetadataField(len(seq) - 1),
-                                    'ratio': FlagField(ratio)})
-                # note that start is end + 1 because we start the next sequence one index to the right.
+                    yield Instance(
+                        {
+                            "tokens": TensorField(seq),
+                            "sequence_len": MetadataField(len(seq) - 1),
+                            "ratio": FlagField(ratio),
+                        }
+                    )
                 start = end + 1
         elif self.exclusive:
             num_sequences = (subwords.size(0) // self.sequence_length) * self.sequence_length
@@ -123,12 +123,12 @@ class WikiTextReader(DatasetReader):
         else:
             for end_idx in range(1, len(subwords)):
                 start_idx = max(0, end_idx - self.sequence_length)
-                inst = subwords[start_idx: end_idx + 1]
+                inst = subwords[start_idx : end_idx + 1]
                 yield Instance({"tokens": TensorField(inst), "ratio": FlagField(ratio)})
 
     def text_to_instance(
-            self,
-            text: str,
+        self,
+        text: str,
     ) -> Instance:
         tokens = torch.tensor(self.tokenizer(text).ids, dtype=torch.long)
         num_words = len(text.split())
@@ -153,16 +153,14 @@ if __name__ == "__main__":
 
     loader = MultiProcessDataLoader(
         reader,
-        data_path=os.path.join(config.WIKI_DIR, "wiki.test.tokens"),
+        data_path=os.path.join(config.WIKI_DIR, "wiki.valid.tokens"),
         batch_size=2,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
     loader.index_with(vocab)
-    tokenizer = Tokenizer.from_file('/data/users/malsalih/Model_Distillation/wordpiece-tokenizer.json')
-    print(tokenizer)
     print("Ready...")
     for i in tqdm(loader):
-        print(i["tokens"])
+        print(i["tokens"].size())
         # input()
 
     # Valid ratio: 1.1494

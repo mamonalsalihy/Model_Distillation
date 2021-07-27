@@ -10,8 +10,8 @@ local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local cosine_epochs = 49;
-local patience = 3;
-local dropout = 0.1;
+local patience = 5;
+local dropout = 0.2;
 
 // Model config
 local num_layers = 16;
@@ -99,8 +99,8 @@ local eval_reader = {
       schedulers: [
       [1, {
         type: 'linear_with_warmup',
-        warmup_steps: 10000,
-        num_epochs: 1,
+        warmup_steps: 14085,
+        num_epochs: 2,
       }],
       [epochs - 1, {
         type: 'cosine',
@@ -113,6 +113,7 @@ local eval_reader = {
     callbacks: [
       {
         type: 'tensorboard',
+        should_log_learning_rate: true,
       },
     ],
   },

@@ -83,7 +83,7 @@ class TeacherStudent(Model):
             with torch.no_grad():
                 teacher_output = self.teacher(tokens, ratio)
                 teacher_logits = teacher_output["logits"]
-
+                self.teacher.perplexity(teacher_output['loss'])
             # Calculate KL divergence loss
             kl_loss = self.kl_loss(student_logits, teacher_logits)
             loss = (1 - self.hard_label_weight) * kl_loss + self.hard_label_weight * ce_loss
@@ -116,6 +116,7 @@ class TeacherStudent(Model):
         return {
             "perplexity": self.student.perplexity.get_metric(reset),
             "word_perplexity": self.student.word_perplexity.get_metric(reset),
+            "teacher": self.teacher.perplexity.get_metric(reset),
         }
 
     def count_parameters(self):

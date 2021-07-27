@@ -64,7 +64,7 @@ def create_app(args, test_config=None):
             input_query = request.form.get("query")
             if input_query == '':
                 return render_template('index.html', query="Please input a query")
-            count_response = inf.predict_continuation(input_query, int(args.max), 0.90)
+            count_response = inf.speak(input_query, int(args.max))
             return render_template('index.html', query=count_response)
         else:
             return render_template("index.html")

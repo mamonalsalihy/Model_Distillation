@@ -41,6 +41,12 @@ class SimpleTransformerLanguageModel(Transformer):
 
         self.backward = backward
 
+    def encode(self, tokens):
+        """Runs the input tokens through the decoder to get a contextual representation."""
+        if self.backward:
+            tokens = torch.flip(tokens, dims=[1])  # shape: [B, S]
+        return super().encode(tokens)
+
     def _add_positional_embeddings(self, emb):
         # emb: [S, B, D]
         positions = torch.arange(len(emb), device=emb.device).unsqueeze(-1)

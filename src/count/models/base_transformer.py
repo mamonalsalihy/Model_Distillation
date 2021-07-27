@@ -95,6 +95,22 @@ class Transformer(Model):
         attn_mask = torch.triu(attn_mask, diagonal=1)
         return attn_mask
 
+    def encode(self, tokens):
+        """Runs the input tokens through the decoder to get a contextual representation."""
+        tokens = tokens.transpose(0, 1)  # new shape [S+1, B]
+        source = tokens[:-1]  # [S, B]
+
+        # Get embeddings
+        # ==============
+        embeddings = self.embedder(source)  # shape: [S, B, D]
+        embeddings = self._add_positional_embeddings(embeddings)
+
+        # Decode target
+        # =============
+        attn_mask = self._make_attention_mask(embeddings)
+        decoded = self.decoder(target=embeddings, attn_mask=attn_mask)
+        return decoded  # shape: [S, B, D]
+
     def _predict(self, target: torch.Tensor):
         # target: [S, B, D]
         attn_mask = self._make_attention_mask(target)

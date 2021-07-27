@@ -63,8 +63,15 @@ class DualDirectionalModel(Model):
             state_dict = torch.load(backward_state_dict)
             self.backward_model.load_state_dict(state_dict)
 
-    def _forward_helper(self, tokens: TensorDict):
-        pass
+    def combine(self, f_logits, b_logits):
+        # shape: N, B, V
+        b_aligned = torch.zeros_like(f_logits)
+
+        b_logits_flip = b_logits.flip(dims=[0])
+        b_aligned[:-1, :, :] = b_logits_flip[1:, :, :]
+
+        cat = torch.cat([f_logits, b_aligned], dim=-1)
+        return self.combine_layer(cat)
 
     def forward(
         self,
@@ -84,7 +91,8 @@ class DualDirectionalModel(Model):
         # we need to weight logits 2 -> N-1
         # logits for N don't need to be weighted
         B, Nm1, D = forward_logits.shape
-        logits = torch.zeros(size=(B, Nm1, D), device=forward_logits.device, dtype=torch.float)  # 2 -> N
+        # 2 -> N
+        logits = torch.zeros(size=(B, Nm1, D), device=forward_logits.device, dtype=torch.float)
 
         logits[:-1, :, :] += forward_logits[:-1, :, :] / 2  # 2 -> N-1
         logits[-1, :, :] += forward_logits[-1, :, :]  # N

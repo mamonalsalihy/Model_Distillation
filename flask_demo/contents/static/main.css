@@ -1,0 +1,17 @@
+body{
+  background-color: #212020;
+}
+.container {
+  width: 1200px;
+  margin: 0 auto;
+  color: aliceblue;
+
+}
+.header_page{
+  text-align: center;
+}
+.button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

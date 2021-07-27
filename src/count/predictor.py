@@ -19,7 +19,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 from src.count.decoders.transformer_decoder import TransformerDecoder
 
-
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class LMInference:
     def __init__(self, model: Model, tokenizer: Tokenizer):
@@ -33,7 +33,7 @@ class LMInference:
         for i in range(n):
             ids = self.tokenizer.encode(text).ids
             ratio = len(text.split()) / (len(ids) - 2)
-            x = torch.tensor(ids, dtype=torch.long, device="cpu").view(1, -1)
+            x = torch.tensor(ids, dtype=torch.long, device=DEVICE).view(1, -1)
             with torch.no_grad():
                 output = self.model.forward(x, 1.0)
             # output = self.model.make_output_human_readable(output)

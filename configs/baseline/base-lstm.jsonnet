@@ -17,13 +17,13 @@ local dropout = 0.125;
 local num_layers = 2;
 local embedding_dim = 64;
 local hidden_dim = embedding_dim * 4;
-local num_attention_heads = 8;
-local activation = 'relu';
 local use_highway = false;
 local go_forward = true;
 local lstm = true;
+local recurrent_dropout_probability = 0.2;
+local layer_dropout_probability = 0.1;
 
-local cuda_devices = [4, 5];
+local cuda_devices = [0, 2];
 local cuda_device = 5;
 
 local train_reader = {
@@ -41,7 +41,7 @@ local eval_reader = {
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
   lstm: lstm,
-  max_seq_len: null,
+  max_seq_len: max_seq_len,
 };
 
 {
@@ -65,6 +65,7 @@ local eval_reader = {
       num_layers: num_layers,
       use_highway: use_highway,
       go_forward: go_forward,
+      recurrent_dropout_probability: recurrent_dropout_probability,
     },
     hidden_dim: hidden_dim,
     dropout: dropout,

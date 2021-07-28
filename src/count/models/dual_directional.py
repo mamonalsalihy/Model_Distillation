@@ -53,7 +53,7 @@ class DualDirectionalModel(Model):
 
         # Evaluation
         # ==========
-        self.metric = Perplexity()
+        self.perplexity = Perplexity()
         self.word_perplexity = Perplexity()
         self.loss = nn.CrossEntropyLoss(ignore_index=self.PAD_IDX, reduction="mean")
 
@@ -90,7 +90,7 @@ class DualDirectionalModel(Model):
         reals = labels.reshape(-1)
         loss = self.loss(preds, reals)
 
-        self.metric(loss)
+        self.perplexity(loss)
         self.word_perplexity(loss * ratio)
 
         # return combined logits & loss
@@ -117,7 +117,7 @@ class DualDirectionalModel(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {
-            "perplexity": self.metric.get_metric(reset),
+            "perplexity": self.perplexity.get_metric(reset),
             "word_perplexity": self.word_perplexity.get_metric(reset),
         }
 

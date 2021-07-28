@@ -74,8 +74,8 @@ class DualDirectionalModel(Model):
     ) -> Dict[str, torch.Tensor]:
         labels = tokens.transpose(0, 1)[1:]  # [S, B]
 
-        forward = self.forward_model.encode(tokens, ratio)["logits"]
-        backward = self.backward_model.encode(tokens, ratio)["logits"]
+        forward = self.forward_model.encode(tokens)
+        backward = self.backward_model.encode(tokens)
         backward = torch.flip(backward, dims=[0])
 
         backward_align = torch.zeros_like(forward)

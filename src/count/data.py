@@ -39,8 +39,7 @@ logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 
-@DatasetReader.register("wikitext-reader")
-class WikiTextReader(DatasetReader):
+class CachedReader(DatasetReader):
     def __init__(
         self,
         sequence_length: int,
@@ -58,6 +57,9 @@ class WikiTextReader(DatasetReader):
         self.exclusive = exclusive
         self.lstm = lstm
         self.max_seq_len = max_seq_len
+
+    def filter_lines(self, lines: List[str]) -> List[str]:
+        raise NotImplementedError
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         cache = Path(f"{file_path}.cache")
@@ -135,6 +137,13 @@ class WikiTextReader(DatasetReader):
         ratio = len(tokens) // num_words
         return Instance({"tokens": TensorField(tokens), "ratio": FlagField(ratio)})
 
+
+@DatasetReader.register("wikitext-reader")
+class WikiTextReader(CachedReader):
+    def __init__(self, args):
+        "docstring"
+
+    @override
     def apply_token_indexers(self, instance) -> None:
         """Adds a token indexer to the instance. Automatically called by AllenNLP."""
         # instance["tokens"].token_indexers = self.token_indexers

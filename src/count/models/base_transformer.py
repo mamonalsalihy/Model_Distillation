@@ -49,6 +49,7 @@ class Transformer(Model):
         # ================
         self.vocab_size = vocab.get_vocab_size()
         self.PAD_IDX = self.vocab.get_token_index(config.PAD)
+        self.embedding_dim = embedding_dim
 
         # TransformerDecoder stuff
         # ========================

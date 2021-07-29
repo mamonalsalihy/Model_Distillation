@@ -29,7 +29,7 @@ class LMInference:
         # only for evaluation
         self.model.eval()
 
-    def speak(self, text: str, n: int):
+    def speak(self, text: str, n: int, temperature: float):
         for i in range(n):
             ids = self.tokenizer.encode(text).ids
             x = torch.tensor(ids, dtype=torch.long, device=DEVICE).view(1, -1)
@@ -38,20 +38,19 @@ class LMInference:
             # output = self.model.make_output_human_readable(output)
             logits = output['logits']
             logits = logits.view(1, -1, logits.size(-1))
-            tokens = torch.argmax(logits, dim=-1)
+            tokens = torch.argmax(logits / temperature, dim=-1)
             new_id = tokens[:, -1].item()
             ids.append(new_id)
             text = self.tokenizer.decode(ids)
             if new_id == self.tokenizer.token_to_id("[CLS]"):
                 return text
-        new_text = self.tokenizer.decode(ids)
+        return self.tokenizer.decode(ids)
 
-        return new_text
 
 def load(args=None):
     if args is None:
         args = {"tokenizer": str(Path(__file__).parents[2].resolve() / "wordpiece-tokenizer.json"),
-                "archive_dir":str(Path(__file__).parents[2].resolve() / "saved-experiments/138M-model/")}
+                "archive_dir": str(Path(__file__).parents[2].resolve() / "saved-experiments/138M-model/")}
         print(args)
         args = namedtuple("args", args)(**args)
     tokenizer = Tokenizer.from_file(args.tokenizer)
@@ -59,6 +58,7 @@ def load(args=None):
     model = Model.load(params, serialization_dir=args.archive_dir)
     inf = LMInference(model, tokenizer)
     return inf
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

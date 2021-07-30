@@ -101,8 +101,8 @@ class DualDirectionalModel(Model):
     ) -> Dict[str, torch.Tensor]:
         labels = tokens.transpose(0, 1)[1:]  # [S, B]
 
-        forward = self.forward_model(tokens)
-        backward = self.backward_model(tokens)
+        forward = self.forward_model(tokens, ratio)
+        backward = self.backward_model(tokens, ratio)
         logits = self.combine(forward, backward)
 
         # Calculate loss

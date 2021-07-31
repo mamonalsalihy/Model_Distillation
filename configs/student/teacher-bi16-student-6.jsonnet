@@ -21,7 +21,7 @@ local num_attention_heads = 12;
 local teacher_model = '/saved-experiments/bidirectional-16-layer/';
 
 // Hyper params
-local temperature = 4.0;
+local temperature = 2.0;
 local hard_label_weight = 0.5;
 
 local cuda_devices = [0, 1];
@@ -109,10 +109,20 @@ local eval_reader = {
       weight_decay: decay,
     },
     learning_rate_scheduler: {
-      type: 'cosine',
-      t_initial: epochs,
+      type: 'combined',
+      schedulers: [
+      [1, {
+        type: 'linear_with_warmup',
+        warmup_steps: 7043,
+        num_epochs: 2,
+      }],
+      [epochs - 1, {
+        type: 'cosine',
+        t_initial: epochs-1,
+      }],
+      ],
     },
-    cuda_device: cuda_device,
+    // cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {
@@ -121,7 +131,7 @@ local eval_reader = {
       },
     ],
   },
-  // distributed: {
-  //   cuda_devices: cuda_devices,
-  // },
+  distributed: {
+    cuda_devices: cuda_devices,
+  },
 }

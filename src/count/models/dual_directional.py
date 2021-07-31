@@ -68,11 +68,10 @@ class DualDirectionalModel(Model):
             self.backward_model.load_state_dict(state_dict)
 
     def combine(self, forward, backward):
-        S, B, V = forward.shape
         backward = torch.flip(backward, dims=[0])
         logits = torch.zeros_like(forward, device=forward.device)
         logits += forward
-        logits[:-1] += backward
+        logits[:-1] += backward[1:]
         logits[:-1] = logits[:-1] / 2
         return logits
 
@@ -101,8 +100,8 @@ class DualDirectionalModel(Model):
     ) -> Dict[str, torch.Tensor]:
         labels = tokens.transpose(0, 1)[1:]  # [S, B]
 
-        forward = self.forward_model(tokens, ratio)
-        backward = self.backward_model(tokens, ratio)
+        forward = self.forward_model(tokens, ratio)["logits"]
+        backward = self.backward_model(tokens, ratio)["logits"]
         logits = self.combine(forward, backward)
 
         # Calculate loss

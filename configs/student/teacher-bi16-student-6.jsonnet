@@ -22,7 +22,7 @@ local forward_teacher = root + 'saved-experiments/16-layer/';
 local backward_teacher = root + 'saved-experiments/16-layer-reverse/';
 
 // Hyper params
-local temperature = 4.0;
+local temperature = 2.0;
 local hard_label_weight = 0.5;
 
 local cuda_devices = [0, 1];

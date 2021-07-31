@@ -37,7 +37,7 @@ class S2SEncoder(Seq2SeqEncoder):
         self.model = model
 
     def forward(self, tokens):
-        """Encodes a sequence of tokens into a single sequence embedding.
+        """Encodes a sequence of `N` tokens into `N` embeddings.
 
         Arguments
         ---------

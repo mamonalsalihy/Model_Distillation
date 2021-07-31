@@ -61,6 +61,9 @@ class CachedReader(DatasetReader):
     def filter_lines(self, lines: List[str]) -> List[str]:
         raise NotImplementedError
 
+    def process_lines(self, lines: List[str]) -> List[str]:
+        raise NotImplementedError
+
     def _read(self, file_path: str) -> Iterable[Instance]:
         cache = Path(f"{file_path}.cache")
         dataset = {}
@@ -70,13 +73,14 @@ class CachedReader(DatasetReader):
         else:
             logger.info(f"Reading data from {file_path}")
             with open(file_path, "r") as f:
-                lines = [
-                    line.strip() for line in tqdm(f) if line.strip() and line.strip()[0] != "="
-                ]
+                lines = [line.strip() for line in tqdm(f)]
 
-            #  replace <unk>s with [UNK]s
+            # filter only "good" lines
+            lines = self.filter_lines(lines)
+
+            #  preprocess lines
             logger.info("Preprocessing...")
-            lines = [line.replace("<unk>", "[UNK]") for line in tqdm(lines)]
+            lines = self.process_lines(lines)
 
             # tokenize
             logger.info("Generating tokens...")
@@ -140,14 +144,23 @@ class CachedReader(DatasetReader):
 
 @DatasetReader.register("wikitext-reader")
 class WikiTextReader(CachedReader):
-    def __init__(self, args):
-        "docstring"
+    def __init__(self, **kwargs):
+        return super().__init__(**kwargs)
 
     @override
     def apply_token_indexers(self, instance) -> None:
         """Adds a token indexer to the instance. Automatically called by AllenNLP."""
         # instance["tokens"].token_indexers = self.token_indexers
         pass
+
+    @override
+    def filter_lines(self, lines):
+        is_good = lambda line: line.strip() and line.strip()[0] != "="
+        return list(filter(is_good, lines))
+
+    @override
+    def process_lines(self, lines):
+        return [line.replace("<unk>", "[UNK]") for line in tqdm(lines)]
 
 
 if __name__ == "__main__":

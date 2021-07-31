@@ -116,7 +116,7 @@ class Transformer(Model):
         # target: [S, B, D]
         attn_mask = self._make_attention_mask(target)
         decoded = self.decoder(target=target, attn_mask=attn_mask)
-        logits = self.lm_head(decoded)  # shape (batch_size, seq_len, vocab_size)
+        logits = self.lm_head(decoded)  # shape [S, B, D]
         return logits
 
     def forward(

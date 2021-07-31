@@ -109,8 +109,18 @@ local eval_reader = {
       weight_decay: decay,
     },
     learning_rate_scheduler: {
-      type: 'cosine',
-      t_initial: epochs,
+      type: 'combined',
+      schedulers: [
+      [1, {
+        type: 'linear_with_warmup',
+        warmup_steps: 14085,
+        num_epochs: 2,
+      }],
+      [epochs - 1, {
+        type: 'cosine',
+        t_initial: epochs-1,
+      }],
+      ],
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,

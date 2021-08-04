@@ -22,14 +22,39 @@ from src.count.decoders.transformer_decoder import TransformerDecoder
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class LMInference:
-    def __init__(self, model: Model, tokenizer: Tokenizer):
+    def __init__(self, model: Model, tokenizer: Tokenizer, backwards: bool = False):
         self.model = model.to(DEVICE)
         self.tokenizer = tokenizer
 
         # only for evaluation
         self.model.eval()
+        self.backwards = backwards
 
     def speak(self, text: str, n: int, temperature: float):
+        if self.backwards:
+            self.speak_backwards(text=text, n=n, temperature=temperature)
+        else:
+            self.speak_forwards(text=text, n=n, temperature=temperature)
+
+    def speak_forwards(self, text: str, n: int, temperature: float):
+        for i in range(n):
+            ids = self.tokenizer.encode(text).ids
+            x = torch.tensor(ids, dtype=torch.long, device=DEVICE).view(1, -1)
+            with torch.no_grad():
+                output = self.model.forward(x, 1.0)
+            # output = self.model.make_output_human_readable(output)
+            #         backward = torch.flip(backward, dims=[0])
+            logits = torch.flip(output['logits'], dims=[0])
+            logits = logits.view(1, -1, logits.size()[-1])
+            tokens = torch.argmax(logits / temperature, dim=-1)
+            new_id = tokens[:, -1].item()
+            ids.append(new_id)
+            text = self.tokenizer.decode(ids)
+            if new_id == self.tokenizer.token_to_id("[CLS]"):
+                return text
+        return self.tokenizer.decode(ids)
+
+    def speak_backwards(self, text: str, n: int, temperature: float):
         for i in range(n):
             ids = self.tokenizer.encode(text).ids
             x = torch.tensor(ids, dtype=torch.long, device=DEVICE).view(1, -1)
@@ -37,10 +62,10 @@ class LMInference:
                 output = self.model.forward(x, 1.0)
             # output = self.model.make_output_human_readable(output)
             logits = output['logits']
-            logits = logits.view(1, -1, logits.size(-1))
+            logits = logits.view(1, -1, logits.size()[-1])
             tokens = torch.argmax(logits / temperature, dim=-1)
-            new_id = tokens[:, -1].item()
-            ids.append(new_id)
+            new_id = tokens[:, 0].item()
+            ids.insert(0, new_id)
             text = self.tokenizer.decode(ids)
             if new_id == self.tokenizer.token_to_id("[CLS]"):
                 return text

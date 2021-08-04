@@ -12,9 +12,10 @@ from src.count import predictor
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("tokenizer")
-    parser.add_argument("archive_dir")
-    parser.add_argument("max")
+    parser.add_argument('-t', '--tokenizer', metavar="tokenizer", type=str, required=True)
+    parser.add_argument('-a', '--archive-dir', metavar="archive_dir", type=str, required=True)
+    parser.add_argument('-m', '--max', metavar="max", type=int, required=False, default=100)
+    parser.add_argument('-b', '--backwards', metavar='backwards', type=bool, required=False, default=False)
     args = parser.parse_args()
 
     app = contents.create_app(args)

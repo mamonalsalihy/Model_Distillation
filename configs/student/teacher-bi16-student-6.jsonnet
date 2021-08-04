@@ -10,7 +10,7 @@ local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 5;
-local dropout = 0.1;
+local dropout = 0.2;
 
 // Student
 local num_layers = 6;
@@ -18,10 +18,11 @@ local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 
-local teacher_model = '/saved-experiments/bidirectional-16-layer/';
+local forward_teacher = root + 'saved-experiments/16-layer/';
+local backward_teacher = root + 'saved-experiments/16-layer-reverse/';
 
 // Hyper params
-local temperature = 2.0;
+local temperature = 4.0;
 local hard_label_weight = 0.5;
 
 local cuda_devices = [0, 1];
@@ -74,8 +75,16 @@ local eval_reader = {
       },
     },
     teacher: {
-      type: 'from_archive',
-      archive_file: root + teacher_model,
+      type: 'dual-directional-language-model',
+      forward_model: {
+        type: 'from_archive',
+        archive_file: forward_teacher,
+      },
+      backward_model: {
+        type: 'from_archive',
+        archive_file: backward_teacher,
+      },
+      embedding_dim: embedding_dim,
     },
   },
   train_data_path: root + 'data/wikitext-103/wiki.train.tokens',

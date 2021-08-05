@@ -1,5 +1,4 @@
 # STL
-import os
 import sys
 from pathlib import Path
 import argparse
@@ -18,9 +17,7 @@ from tokenizers import Tokenizer
 # Local
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
-from src.count.models.teacher_student import TeacherStudent
 from src.count.decoders.transformer_decoder import TransformerDecoder
-from src.count.data import WikiTextReader
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -93,6 +90,7 @@ if __name__ == "__main__":
     parser.add_argument("tokenizer")
     parser.add_argument("archive_dir")
     parser.add_argument("max")
+    parser.add_argument("text")
     args = parser.parse_args()
 
     inf = load(args)

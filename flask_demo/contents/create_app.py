@@ -61,10 +61,19 @@ def create_app(args, test_config=None):
     @app.route('/', methods=["POST", "GET"])
     def root():
         if request.method == "POST":
+            if request.form.get('submit_button') == "baseline":
+                args.archive_dir = '../experiments/16-layer'
+            if request.form.get('submit_button') == 'best_kd':
+                args.archive_dir = '../experiments/138M-model'
+            if request.form.get('submit_button') == 'the_count':
+                args.archive_dir = '../experiments/count'
+            inf = init_model(args)
             input_query = request.form.get("query")
             if input_query == '':
                 return render_template('index.html', query="Please input a query")
-            count_response = inf.speak(input_query, int(args.max))
+            if input_query is None:
+                return render_template('index.html', query='Model was switched!')
+            count_response = inf.speak(input_query, int(args.max), float(args.temperature))
             return render_template('index.html', query=count_response)
         else:
             return render_template("index.html")

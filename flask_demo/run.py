@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument("tokenizer")
     parser.add_argument("archive_dir")
     parser.add_argument("max")
+    parser.add_argument("temperature")
     args = parser.parse_args()
 
     app = contents.create_app(args)

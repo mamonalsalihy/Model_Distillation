@@ -5,7 +5,7 @@ local root = '/data/users/nilay/the-count/';
 local sequence_length = 256;
 local lr = 2.5e-4;
 local decay = 0.00;
-local batch_size = 32;
+local batch_size = 64;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
@@ -14,13 +14,13 @@ local patience = 5;
 local dropout = 0.2;
 
 // Model config
-local num_layers = 16;
+local num_layers = 6;
 local embedding_dim = 768;
 local hidden_dim = embedding_dim * 4;
 local num_attention_heads = 12;
 
 local cuda_devices = [0, 1];
-local cuda_device = 3;
+local cuda_device = 0;
 
 local train_reader = {
   type: 'wikitext-reader',
@@ -100,7 +100,7 @@ local eval_reader = {
       schedulers: [
       [1, {
         type: 'linear_with_warmup',
-        warmup_steps: 14085,
+        warmup_steps: 7043,
         num_epochs: 2,
       }],
       [epochs - 1, {
@@ -118,7 +118,7 @@ local eval_reader = {
       },
     ],
   },
-//  distributed: {
-//    cuda_devices: cuda_devices,
-//  },
+  // distributed: {
+  //   cuda_devices: cuda_devices,
+  // },
 }

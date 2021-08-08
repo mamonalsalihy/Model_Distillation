@@ -47,7 +47,6 @@ class CachedReader(DatasetReader):
         token_indexers: Dict[str, TokenIndexer] = None,
         exclusive: bool = True,
         lstm: bool = False,
-        max_seq_len: int = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -56,7 +55,6 @@ class CachedReader(DatasetReader):
         self.token_indexers = token_indexers
         self.exclusive = exclusive
         self.lstm = lstm
-        self.max_seq_len = max_seq_len
 
     def filter_lines(self, lines: List[str]) -> List[str]:
         raise NotImplementedError
@@ -112,7 +110,7 @@ class CachedReader(DatasetReader):
             start = 0
             for i, end in enumerate(sequence_indices):
                 seq = subwords[start : end + 1]
-                if self.max_seq_len is None or seq.size(0) < self.max_seq_len:
+                if seq.size(0) <= self.sequence_length:
                     yield Instance(
                         {
                             "tokens": TensorField(seq),
@@ -165,11 +163,10 @@ class WikiTextReader(CachedReader):
 
 if __name__ == "__main__":
     reader = WikiTextReader(
-        sequence_length=4,
+        sequence_length=256,
         tokenizer_path=config.TOKENIZER,
         max_instances=None,
         lstm=True,
-        max_seq_len=256,
         exclusive=False,
     )
 

@@ -10,7 +10,7 @@ local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 5;
-local dropout = 0.2;
+local dropout = 0.1;
 
 // Student
 local num_layers = 6;
@@ -22,7 +22,7 @@ local forward_teacher = root + 'saved-experiments/16-layer/';
 local backward_teacher = root + 'saved-experiments/16-layer-reverse/';
 
 // Hyper params
-local temperature = 4.0;
+local temperature = 2.0;
 local hard_label_weight = 0.5;
 
 local cuda_devices = [0, 1];
@@ -118,18 +118,8 @@ local eval_reader = {
       weight_decay: decay,
     },
     learning_rate_scheduler: {
-      type: 'combined',
-      schedulers: [
-      [1, {
-        type: 'linear_with_warmup',
-        warmup_steps: 7043,
-        num_epochs: 2,
-      }],
-      [epochs - 1, {
-        type: 'cosine',
-        t_initial: epochs-1,
-      }],
-      ],
+      type: 'cosine',
+      t_initial: epochs,
     },
     // cuda_device: cuda_device,
     grad_norm: 0.25,

@@ -16,6 +16,7 @@ from allennlp.models import BasicClassifier
 from allennlp.modules import Embedding, Seq2SeqEncoder, Seq2VecEncoder, FeedForward
 from allennlp.nn import Activation
 from allennlp.modules.text_field_embedders import PassThroughTokenEmbedder
+from allennlp.data.data_loaders import MultiProcessDataLoader
 
 
 # Models
@@ -25,6 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Local
 from src.count import config
+from src.count.data import ColaReader
 from src.count.models.base_transformer import Transformer
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 from src.count.decoders.transformer_decoder import TransformerDecoder
@@ -53,6 +55,7 @@ class S2SEncoder(Seq2SeqEncoder):
         return self.model.encode(tokens)
 
 
+@Seq2VecEncoder.register("glue-s2v-pooler")
 class S2VEncoder(Seq2VecEncoder):
     def __init__(self, model: Transformer, pooler: str = "max"):
         self.model = model
@@ -93,7 +96,15 @@ class S2VEncoder(Seq2VecEncoder):
 
 
 if __name__ == "__main__":
-    vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token=config.PAD, oov_token=config.UNK)
+    reader = ColaReader("../../wordpiece-tokenizer.json")
+
+    loader = MultiProcessDataLoader(
+        reader,
+        data_path="train",
+        batch_size=2,
+    )
+    vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
+    loader.index_with(vocab)
 
     model = SimpleTransformerLanguageModel.from_archive(
         "/data/users/nilay/the-count/saved-experiments/16M-model/model.tar.gz", vocab

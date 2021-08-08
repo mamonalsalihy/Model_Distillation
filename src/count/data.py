@@ -155,7 +155,8 @@ class ColaReader(DatasetReader):
         self.dataset = load_dataset("glue", "cola")
 
     def text_to_instance(self, text, label=None) -> Instance:
-        tokens = [Token(i) for i in self.tokenizer.encode(text).tokens]
+        encoding = self.tokenizer.encode(text)
+        tokens = [Token(tok, idx=i) for i, tok in zip(encoding.ids, encoding.tokens)]
         text_field = TextField(tokens, self.token_indexers)
         fields = {"tokens": text_field}
         if label is not None:

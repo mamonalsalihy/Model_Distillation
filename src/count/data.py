@@ -17,7 +17,7 @@ from allennlp.data.data_loaders import MultiProcessDataLoader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 
 # Data types
-from allennlp.data.fields import Field, TextField, FlagField, TensorField, MetadataField
+from allennlp.data.fields import Field, TextField, FlagField, TensorField, MetadataField, LabelField
 from allennlp.data.instance import Instance
 
 # Indexers
@@ -27,6 +27,9 @@ from allennlp.data import Token
 
 # Tokenizers
 from tokenizers import Tokenizer
+
+# Datasets
+from datasets import load_dataset
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
@@ -141,27 +144,57 @@ class WikiTextReader(DatasetReader):
         pass
 
 
+@DatasetReader.register("cola-reader")
+class ColaReader(DatasetReader):
+    def __init__(
+        self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        self.dataset = load_dataset("glue", "cola")
+
+    def text_to_instance(self, text, label=None) -> Instance:
+        tokens = [Token(i) for i in self.tokenizer.encode(text).tokens]
+        text_field = TextField(tokens, self.token_indexers)
+        fields = {"tokens": text_field}
+        if label is not None:
+            fields["label"] = LabelField(label, skip_indexing=True)
+
+        return Instance(fields)
+
+    def _read(self, split):
+        for item in self.dataset[split]:
+            text = item["sentence"]
+            label = item.get("label", None)
+            idx = item["idx"]
+
+            yield self.text_to_instance(text, label)
+
+
 if __name__ == "__main__":
-    reader = WikiTextReader(
-        sequence_length=4,
-        tokenizer_path=config.TOKENIZER,
-        max_instances=None,
-        lstm=True,
-        max_seq_len=256,
-        exclusive=False,
-    )
+    # reader = WikiTextReader(
+    #     sequence_length=4,
+    #     tokenizer_path=config.TOKENIZER,
+    #     max_instances=None,
+    #     lstm=True,
+    #     max_seq_len=256,
+    #     exclusive=False,
+    # )
+
+    reader = ColaReader("../../wordpiece-tokenizer.json")
 
     loader = MultiProcessDataLoader(
         reader,
-        data_path=os.path.join(config.WIKI_DIR, "wiki.valid.tokens"),
+        data_path="train",
         batch_size=2,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
     loader.index_with(vocab)
     print("Ready...")
     for i in tqdm(loader):
-        print(i["tokens"].size())
-        # input()
+        print(i)
+        input()
 
     # Valid ratio: 1.1494
     # Test ratio:  1.1537

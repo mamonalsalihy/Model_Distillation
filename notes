@@ -1,0 +1,14 @@
+
+
+
+
+BOS I want to eat an apple EOS              (whole sequence)
+
+I want to eat an -> want to eat an apple    (forwards)
+
+want to eat an apple -> I want to eat an    (backwards flipped)
+apple an eat to want -> an eat to want I    (backwards)
+
+[want to eat an _____] (forwards) / 2
+[____ __ ___ __ apple] (forwards)
+[want to eat an _____] (backwards flipped) / 2

@@ -42,7 +42,7 @@ logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 
-@DatasetReader.register("wikitext-reader")
+@DatasetReader.register("wikitext-reader", exist_ok=True)
 class WikiTextReader(DatasetReader):
     def __init__(
         self,
@@ -144,7 +144,7 @@ class WikiTextReader(DatasetReader):
         pass
 
 
-@DatasetReader.register("cola-reader")
+@DatasetReader.register("cola-reader", exist_ok=True)
 class ColaReader(DatasetReader):
     def __init__(
         self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs

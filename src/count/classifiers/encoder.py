@@ -15,7 +15,7 @@ from allennlp.data import Vocabulary
 from allennlp.models import BasicClassifier
 from allennlp.modules import Embedding, Seq2SeqEncoder, Seq2VecEncoder, FeedForward
 from allennlp.nn import Activation
-from allennlp.modules.text_field_embedders import PassThroughTokenEmbedder
+from allennlp.modules.token_embedders import PassThroughTokenEmbedder
 from allennlp.data.data_loaders import MultiProcessDataLoader
 
 
@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class S2SEncoder(Seq2SeqEncoder):
-    def __init__(self, model: Transformer):
+    def __init__(self, model: Model, **kwargs):
+        super().__init__(**kwargs)
         self.model = model
 
     def forward(self, tokens):
@@ -44,20 +45,21 @@ class S2SEncoder(Seq2SeqEncoder):
         Arguments
         ---------
         tokens : torch.Tensor
-            Input sequence to embed, of shape [B, S]
+            Input sequence to encode, of shape [B, S]
 
         Returns
         -------
         torch.Tensor :
-            Sequence embedding of shape [B, D]
+            Sequence embedding of shape [B, S, D]
         """
         # encode -> pool -> return
         return self.model.encode(tokens)
 
 
-@Seq2VecEncoder.register("glue-s2v-pooler")
+@Seq2VecEncoder.register("glue-s2v-encoder")
 class S2VEncoder(Seq2VecEncoder):
-    def __init__(self, model: Transformer, pooler: str = "max"):
+    def __init__(self, model: Model, pooler: str = "max", **kwargs):
+        super().__init__(**kwargs)
         self.model = model
 
         # Determine which pooling operation to use
@@ -71,19 +73,20 @@ class S2VEncoder(Seq2VecEncoder):
 
     @staticmethod
     def max_pool(seq):
-        return torch.max(seq, dim=0)
+        vals, _ = torch.max(seq, dim=0)
+        return vals
 
     @staticmethod
     def mean_pool(seq):
         return torch.mean(seq, dim=0)
 
-    def forward(self, tokens):
+    def forward(self, tokens, mask=None, *args, **kwargs):
         """Encodes a sequence of tokens into a single sequence embedding.
 
         Arguments
         ---------
         tokens : torch.Tensor
-            Input sequence to embed, of shape [B, S]
+            Input sequence to encode, of shape [B, S]
 
         Returns
         -------
@@ -91,7 +94,8 @@ class S2VEncoder(Seq2VecEncoder):
             Sequence embedding of shape [B, D]
         """
         # encode -> pool -> return
-        seq_emb = self.model.encode(tokens)
+        mask = ~mask  # mask is flipped the wrong way for `MultiheadAttention`
+        seq_emb = self.model.encode(tokens, mask)
         return self.pooler(seq_emb)  # [B, D]
 
 
@@ -109,7 +113,8 @@ if __name__ == "__main__":
     model = SimpleTransformerLanguageModel.from_archive(
         "/data/users/nilay/the-count/saved-experiments/16M-model/model.tar.gz", vocab
     )
-    embedder = PassThroughTokenEmbedder(vocab.get_vocab_size("tokens"))
+    passthrough = PassThroughTokenEmbedder(vocab.get_vocab_size("tokens"))
+    embedder = BasicTextFieldEmbedder({"tokens": passthrough})
     seq2vec = S2VEncoder(model)
     ff = FeedForward(
         input_dim=model.embedding_dim,

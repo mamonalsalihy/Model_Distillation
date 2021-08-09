@@ -147,6 +147,7 @@ class TransformerDecoderLayer(nn.Module):
             target,
             target,
             attn_mask=attn_mask,
+            key_padding_mask=key_padding_mask,
             need_weights=False,
         )
         inp = self.dropout(inp)

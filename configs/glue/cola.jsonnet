@@ -2,18 +2,19 @@
 local root = '/data/users/nilay/the-count/';
 
 // Training
-local lr = 2.5e-4;
-local decay = 0.00;
-local batch_size = 64;
+local lr = 1e-6;
+local decay = 1e-4;
+local batch_size = 256;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
-local patience = 5;
-local dropout = 0.2;
+local patience = 20;
+local dropout = 0.3;
 
 // Model config
 local embed_dim = 768;
 local model_path = root + 'saved-experiments/6-layer/';
+local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
 local cuda_device = 0;
@@ -35,21 +36,25 @@ local reader = {
   model: {
     type: 'basic_classifier',
     text_field_embedder: {
-      type: 'pass_through',
-      hidden_dim: 32000,
-    },
-    seq2vec_encoder: {
-      type: 'glue_s2v_encoder',
-      model: {
-        type: 'from_archive',
-        archive_dir: model_path,
+      type: 'basic',
+      token_embedders: 
+      {
+        "tokens": { type: 'pass_through', hidden_dim: 32000, },
       },
     },
+    seq2vec_encoder: {
+      type: 'glue-s2v-encoder',
+      model: {
+        type: 'from_archive',
+        archive_file: model_path,
+      },
+      pooler: "mean",
+    },
     feedforward: {
-      type: 'feedforward',
+      num_layers: num_head_layers,
       input_dim: embed_dim,
       hidden_dims: embed_dim * 4,
-      activation: 'relu',
+      activations: 'relu',
       dropout: dropout,
     },
     num_labels: 2,
@@ -76,7 +81,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: 'accuracy',
+    validation_metric: '+mcc',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,
@@ -84,10 +89,6 @@ local reader = {
       type: 'adam',
       lr: lr,
       weight_decay: decay,
-    },
-    learning_rate_scheduler: {
-      type: 'cosine',
-      t_initial: epochs,
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,

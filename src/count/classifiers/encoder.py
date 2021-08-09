@@ -2,9 +2,6 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, Optional
-
-import numpy
 
 # Torch
 import torch
@@ -16,7 +13,6 @@ from allennlp.models import BasicClassifier
 from allennlp.modules import Embedding, Seq2SeqEncoder, Seq2VecEncoder, FeedForward
 from allennlp.nn import Activation
 from allennlp.modules.token_embedders import PassThroughTokenEmbedder
-from allennlp.data.data_loaders import MultiProcessDataLoader
 
 
 # Models
@@ -27,9 +23,7 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 # Local
 from src.count import config
 from src.count.data import ColaReader
-from src.count.models.base_transformer import Transformer
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
-from src.count.decoders.transformer_decoder import TransformerDecoder
 
 logger = logging.getLogger(__name__)
 

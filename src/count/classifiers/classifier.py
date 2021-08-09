@@ -72,11 +72,11 @@ class GLUEClassifier(BasicClassifier):
 
     def forward(
         self,
-        encoded_text: torch.FloatTensor,
-        encoded_text_mask: torch.BoolTensor,
+        tokens: TextFieldTensors,
         label: torch.IntTensor = None,
+        metadata: MetadataField = None,
     ) -> Dict[str, torch.Tensor]:
-        output = super().forward(encoded_text, encoded_text_mask, label)
+        output = super().forward(tokens, label, metadata)
         for metric in self.metrics.values():
             metric(output["logits"], label)
         return output

@@ -28,12 +28,14 @@ from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 logger = logging.getLogger(__name__)
 
 
+@Seq2SeqEncoder.register("glue-s2s-encoder", exist_ok=True)
 class S2SEncoder(Seq2SeqEncoder):
     def __init__(self, model: Model, **kwargs):
         super().__init__(**kwargs)
         self.model = model
+        self.model.eval()
 
-    def forward(self, tokens):
+    def forward(self, tokens, mask=None, *args, **kwargs):
         """Encodes a sequence of `N` tokens into `N` embeddings.
 
         Arguments
@@ -47,7 +49,9 @@ class S2SEncoder(Seq2SeqEncoder):
             Sequence embedding of shape [B, S, D]
         """
         # encode -> pool -> return
-        return self.model.encode(tokens)
+        mask = ~mask  # mask is flipped the wrong way for `MultiheadAttention`
+        seq = self.model.encode(tokens, mask, False)  # S, B, D
+        return seq.transpose(0, 1)
 
 
 @Seq2VecEncoder.register("glue-s2v-encoder")
@@ -72,7 +76,8 @@ class S2VEncoder(Seq2VecEncoder):
 
     @staticmethod
     def mean_pool(seq):
-        return torch.mean(seq, dim=0)
+        vals =  torch.mean(seq, dim=0)
+        return vals
 
     def forward(self, tokens, mask=None, *args, **kwargs):
         """Encodes a sequence of tokens into a single sequence embedding.

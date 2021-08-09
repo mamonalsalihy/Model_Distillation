@@ -9,13 +9,15 @@ import torch
 import torch.nn as nn
 
 # AllenNLP
-from allennlp.data import Vocabulary
+from allennlp.data import Vocabulary, TextFieldTensors
+from allennlp.data.fields import MetadataField
 from allennlp.models import BasicClassifier
 from allennlp.modules import Embedding, Seq2SeqEncoder, Seq2VecEncoder, FeedForward
 from allennlp.nn import Activation, InitializerApplicator
 from allennlp.modules.token_embedders import PassThroughTokenEmbedder
 from allennlp.modules import TextFieldEmbedder
 from allennlp.training.metrics import Metric, CategoricalAccuracy
+from allennlp.nn.util import get_text_field_mask
 
 
 # Models
@@ -36,39 +38,47 @@ logger = logging.getLogger(__name__)
 
 
 @Model.register("glue-classifier", exist_ok=True)
-class GLUEClassifier(BasicClassifier):
+class GLUEClassifier(Model):
     def __init__(
         self,
         vocab: Vocabulary,
-        text_field_embedder: TextFieldEmbedder,
-        seq2vec_encoder: Seq2VecEncoder,
-        seq2seq_encoder: Optional[Seq2SeqEncoder] = None,
+        model: Model,
+        embedding_dim: int,
         feedforward: Optional[FeedForward] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
-        dropout: float = None,
+        pool_method: str = "sum",
         num_labels: int = None,
-        label_namespace: str = "labels",
-        namespace: str = "tokens",
-        initializer: InitializerApplicator = InitializerApplicator(),
         **kwargs,
     ):
         "Classifier with custom metrics"
-        super().__init__(
-            vocab,
-            text_field_embedder,
-            seq2vec_encoder,
-            seq2seq_encoder,
-            feedforward,
-            dropout,
-            num_labels,
-            label_namespace,
-            namespace,
-            initializer,
-            **kwargs,
-        )
+        super().__init__(vocab)
 
-        self.metrics = metrics or {}
-        self.metrics.update({"accuracy": self._accuracy})
+        self.model = model
+        self.feedforward = feedforward
+        self.num_labels = num_labels
+        self.embedding_dim = embedding_dim
+        self.classifier_head = nn.Linear(self.embedding_dim, self.num_labels)
+
+        if pool_method == "sum":
+            self.pooler = self.sum
+        elif pool_method == "mean":
+            self.pooler = self.mean
+        elif pool_method == "max":
+            self.pooler = self.max
+
+        self.loss = nn.BCEWithLogitsLoss(reduction='mean')
+
+
+    @staticmethod
+    def sum(self, seq):
+        return torch.sum(seq, dim=1)
+
+    @staticmethod
+    def max(self, seq):
+        return torch.max(seq, dim=1)[0]
+
+    @staticmethod
+    def mean(self, seq):
+        return torch.mean(seq, dim=1)
 
     def forward(
         self,
@@ -76,10 +86,37 @@ class GLUEClassifier(BasicClassifier):
         label: torch.IntTensor = None,
         metadata: MetadataField = None,
     ) -> Dict[str, torch.Tensor]:
-        output = super().forward(tokens, label, metadata)
-        for metric in self.metrics.values():
-            metric(output["logits"], label)
-        return output
+
+        pad_mask = get_text_field_mask(tokens)
+        x = tokens['tokens']['tokens']
+
+        B, S = x.shape
+
+        # encode
+        hidden = self.model.encode(x, pad_mask, chop_off_last=False)  # [S, B, D]
+        hidden = hidden.transpose(0, 1)  # [B, S, D]
+
+        # feedforward
+        if self.feedforward:
+            hidden = self.feedforward(hidden)
+
+        # pool
+        pooled = self.pooler(hidden) # [B, D]
+
+        # head
+        logits = self.classifier_head(hidden) # [B, 2]
+
+        # loss & metrics
+        loss = self.loss(logits, label)
+        predictions = torch.argmax(logits, dim=-1)
+        self.accuracy(predictions, label)
+
+        return {
+            "loss": loss,
+            "logits": logits,
+        }
 
     def get_metrics(self, reset: bool = False):
-        return {name: metric.get_metric(reset) for name, metric in self.metrics.items()}
+        return {"accuracy": self.accuracy.get_metric(reset)}
+
+

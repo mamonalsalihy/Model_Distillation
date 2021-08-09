@@ -11,6 +11,8 @@ from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 from src.count.models.teacher_student import TeacherStudent
 from src.count.models.base_lstm import SimpleLSTMLanguageModel
 from src.count.classifiers.encoder import S2VEncoder, S2SEncoder
+from src.count.classifiers.metrics import MCC
+from src.count.classifiers.classifier import GLUEClassifier
 from src.count.tokenizer import WikiTextTokenizer
 from src.utils.misc_utils import get_model_size
 

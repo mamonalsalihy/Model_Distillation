@@ -34,22 +34,12 @@ local reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'glue-classfier',
-    text_field_embedder: {
-      type: 'basic',
-      token_embedders:
-        {
-          tokens: { type: 'pass_through', hidden_dim: 100 },
-        },
+    type: 'glue-classifier',
+    model: {
+      type: 'from_archive',
+      archive_file: model_path,
     },
-    seq2vec_encoder: {
-      type: 'glue-s2v-encoder',
-      model: {
-        type: 'from_archive',
-        archive_file: model_path,
-      },
-      pooler: 'mean',
-    },
+    embedding_dim: embed_dim,
     feedforward: {
       num_layers: num_head_layers,
       input_dim: embed_dim,
@@ -61,7 +51,6 @@ local reader = {
       mcc: { type: 'mcc' },
     },
     num_labels: 2,
-    dropout: dropout,
   },
   train_data_path: 'train',
   validation_data_path: 'validation',
@@ -84,7 +73,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+mcc',
+    validation_metric: '+accuracy',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,

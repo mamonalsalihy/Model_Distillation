@@ -121,7 +121,7 @@ local eval_reader = {
       type: 'cosine',
       t_initial: epochs,
     },
-    // cuda_device: cuda_device,
+    cuda_device: cuda_device,
     grad_norm: 0.25,
     callbacks: [
       {

@@ -154,11 +154,11 @@ class ColaReader(DatasetReader):
         self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
         self.dataset = load_dataset("glue", "cola")
 
-    def text_to_instance(self, text, label=None) -> Instance:
+    def text_to_instance(self, text, idx, label=None) -> Instance:
         encoding = self.tokenizer.encode(text)
         tokens = [Token(tok, idx=i) for i, tok in zip(encoding.ids, encoding.tokens)]
         text_field = TextField(tokens, self.token_indexers)
-        fields = {"tokens": text_field}
+        fields = {"tokens": text_field, "idx": MetadataField(idx)}
         if label is not None:
             fields["label"] = LabelField(label, skip_indexing=True)
 
@@ -169,8 +169,7 @@ class ColaReader(DatasetReader):
             text = item["sentence"]
             label = item.get("label", None)
             idx = item["idx"]
-
-            yield self.text_to_instance(text, label)
+            yield self.text_to_instance(text, idx, label)
 
 
 if __name__ == "__main__":

@@ -1,19 +1,20 @@
 // Paths
-local root = '/data/users/nilay/the-count/';
+// local root = '/data/users/nilay/the-count/';
+local root = '/home/offendo/src/the-count/';
 
 // Training
-local lr = 1e-6;
-local decay = 1e-4;
-local batch_size = 256;
+local lr = 1e-5;
+local decay = 5e-4;
+local batch_size = 64;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 20;
-local dropout = 0.3;
+local dropout = 0.5;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/6-layer/';
+local model_path = root + 'saved-experiments/2-layer/';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
@@ -43,7 +44,7 @@ local reader = {
     feedforward: {
       num_layers: num_head_layers,
       input_dim: embed_dim,
-      hidden_dims: embed_dim * 4,
+      hidden_dims: [embed_dim * 4, embed_dim],
       activations: 'relu',
       dropout: dropout,
     },
@@ -73,7 +74,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+accuracy',
+    validation_metric: '+mcc',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,
@@ -84,11 +85,5 @@ local reader = {
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,
-    callbacks: [
-      {
-        type: 'tensorboard',
-        should_log_learning_rate: true,
-      },
-    ],
   },
 }

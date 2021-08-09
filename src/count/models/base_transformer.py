@@ -96,14 +96,11 @@ class Transformer(Model):
         attn_mask = torch.triu(attn_mask, diagonal=1)
         return attn_mask
 
-    def encode(self, tokens, mask=None, chop_off_last=True):
+    def encode(self, tokens, mask=None):
         """Runs the input tokens through the decoder to get a contextual representation."""
         tokens = tokens.transpose(0, 1)  # new shape [S+1, B]
-        if chop_off_last:
-            source = tokens[:-1]  # [S, B]
-            mask = mask[:, :-1]
-        else:
-            source = tokens
+        source = tokens[:-1]  # [S, B]
+        mask = mask[:, :-1]
 
         # Get embeddings
         # ==============

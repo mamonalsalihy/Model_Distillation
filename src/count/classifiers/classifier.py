@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # Torch
 import torch
@@ -16,7 +16,7 @@ from allennlp.modules import Embedding, Seq2SeqEncoder, Seq2VecEncoder, FeedForw
 from allennlp.nn import Activation, InitializerApplicator
 from allennlp.modules.token_embedders import PassThroughTokenEmbedder
 from allennlp.modules import TextFieldEmbedder
-from allennlp.training.metrics import Metric, CategoricalAccuracy
+from allennlp.training.metrics import Metric, CategoricalAccuracy, BooleanAccuracy
 from allennlp.nn.util import get_text_field_mask
 
 
@@ -33,6 +33,7 @@ except NameError:
 from src.count import config
 from src.count.data import ColaReader
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
+from src.count.classifiers.metrics import MCC
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,9 @@ class GLUEClassifier(Model):
         model: Model,
         embedding_dim: int,
         feedforward: Optional[FeedForward] = None,
-        pool_method: str = "sum",
+        pool_method: str = "mean",
         num_labels: int = None,
+        weights: List = None,
         **kwargs,
     ):
         "Classifier with custom metrics"
@@ -65,35 +67,36 @@ class GLUEClassifier(Model):
         elif pool_method == "max":
             self.pooler = self.max
 
-        self.loss = nn.BCEWithLogitsLoss(reduction='mean')
-
+        weights = weights or torch.ones(num_labels)
+        self.loss = nn.CrossEntropyLoss(reduction="mean", weight=weights)
+        self.accuracy = BooleanAccuracy()
+        self.mcc = MCC()
 
     @staticmethod
-    def sum(self, seq):
+    def sum(seq):
         return torch.sum(seq, dim=1)
 
     @staticmethod
-    def max(self, seq):
+    def max(seq):
         return torch.max(seq, dim=1)[0]
 
     @staticmethod
-    def mean(self, seq):
+    def mean(seq):
         return torch.mean(seq, dim=1)
 
     def forward(
         self,
         tokens: TextFieldTensors,
+        idx: MetadataField,
         label: torch.IntTensor = None,
-        metadata: MetadataField = None,
     ) -> Dict[str, torch.Tensor]:
 
-        pad_mask = get_text_field_mask(tokens)
-        x = tokens['tokens']['tokens']
+        pad_mask = ~get_text_field_mask(tokens)  # don't forget to flip it with `~`!
+        hidden = tokens["tokens"]["tokens"]
 
-        B, S = x.shape
+        B, S = hidden.shape
 
-        # encode
-        hidden = self.model.encode(x, pad_mask, chop_off_last=False)  # [S, B, D]
+        hidden = self.model.encode(hidden, pad_mask)  # [S, B, D]
         hidden = hidden.transpose(0, 1)  # [B, S, D]
 
         # feedforward
@@ -101,22 +104,34 @@ class GLUEClassifier(Model):
             hidden = self.feedforward(hidden)
 
         # pool
-        pooled = self.pooler(hidden) # [B, D]
+        pooled = self.pooler(hidden)  # [B, D]
 
         # head
-        logits = self.classifier_head(hidden) # [B, 2]
+        logits = self.classifier_head(pooled)  # [B, 2]
+        predictions = torch.argmax(logits, dim=-1)
 
         # loss & metrics
-        loss = self.loss(logits, label)
-        predictions = torch.argmax(logits, dim=-1)
-        self.accuracy(predictions, label)
+        if label.max() >= 0:
+            loss = self.loss(logits, label)
+            self.accuracy(predictions, label)
+            self.mcc(predictions, label)
+        else:
+            loss = torch.tensor(0.0, device=hidden.device)
 
         return {
             "loss": loss,
             "logits": logits,
+            "preds": predictions,
+            "idx": idx,
         }
 
+    def make_output_human_readable(self, output_dict):
+        idxs = output_dict["idx"]
+        preds = output_dict["preds"]
+
+        lines = "\n".join([f"{int(i)+1},{p}" for i, p in zip(idxs, preds)])
+        output_dict["lines"] = lines
+        return output_dict
+
     def get_metrics(self, reset: bool = False):
-        return {"accuracy": self.accuracy.get_metric(reset)}
-
-
+        return {"accuracy": self.accuracy.get_metric(reset), "mcc": self.mcc.get_metric(reset)}

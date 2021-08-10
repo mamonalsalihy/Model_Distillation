@@ -6,13 +6,14 @@
         <div class="col">
             <br/><br/>
             <h1 class="header_page">Let the CoUnT tell you something!</h1>
+            <div class='analytics_link'><a href="{{ url_for('analytics') }}">Visit Analytics</a></div>
             <br/>
         </div>
         <div class="row">
             <div class="col-10">
                 <form action="/" method="POST">
                     <div class="form-group">
-                        <label for="inputQueryText">Input Query</label>
+                        <br/>
                         <input type="text" class="form-control" id="inputQueryText" aria-describedby="emailHelp"
                                placeholder="Enter query" name="query">
                         <br/>

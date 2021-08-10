@@ -57,6 +57,11 @@ def create_app(args, test_config=None):
 
     inf = init_model(args)
 
+    @app.route('/analytics')
+    def analytics():
+        print("Rendering analystics page")
+        return render_template('analytics.html')
+
     # Accesses the root URL
     @app.route('/', methods=["POST", "GET"])
     def root():

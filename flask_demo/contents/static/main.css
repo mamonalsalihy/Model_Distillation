@@ -1,17 +1,26 @@
-body{
-  background-color: #212020;
+body {
+    background-color: #212020;
 }
+
 .container {
-  width: 1200px;
-  margin: 0 auto;
-  color: aliceblue;
+    width: 1200px;
+    margin: 0 auto;
+    color: aliceblue;
 
 }
-.header_page{
-  text-align: center;
+
+.header_page {
+    text-align: center;
+    margin-right: 15%;
 }
+
 .button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.analytics_link{
+    text-align: center;
+    margin-right: 15%;
 }

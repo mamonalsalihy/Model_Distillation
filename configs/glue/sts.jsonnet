@@ -3,9 +3,9 @@
 local root = '/home/offendo/src/the-count/';
 
 // Training
-local lr = 1e-4;
-local decay = 1e-3;
-local batch_size = 64;
+local lr = 5e-6;
+local decay = 1e-2;
+local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
@@ -48,8 +48,8 @@ local reader = {
     //   activations: 'relu',
     //   dropout: dropout,
     // },
-    // freeze: true,
-    pool_method: 'cls',
+    freeze: true,
+    pool_method: 'mean',
   },
   train_data_path: 'train',
   validation_data_path: 'validation',

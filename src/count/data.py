@@ -183,13 +183,16 @@ class StsReader(DatasetReader):
         self.dataset = load_dataset("glue", "stsb")
 
     def text_to_instance(self, sent1, sent2, idx, label=None) -> Instance:
-        sent1 = self.tokenizer.encode(sent1)
-        sent2 = self.tokenizer.encode(sent2)
-        tok1 = [Token(tok, idx=i) for i, tok in zip(sent1.ids, sent1.tokens)]
-        tok2 = [Token(tok, idx=i) for i, tok in zip(sent2.ids, sent2.tokens)]
-        text_field_1 = TextField(tok1, self.token_indexers)
-        text_field_2 = TextField(tok2, self.token_indexers)
-        fields = {"sentence1": text_field_1, "sentence2": text_field_2, "idx": MetadataField(idx)}
+        one_two = self.tokenizer.encode(sent1, sent2)
+        one_two = [Token(tok, idx=i) for i, tok in zip(one_two.ids, one_two.tokens)]
+
+        two_one = self.tokenizer.encode(sent2, sent1)
+        two_one = [Token(tok, idx=i) for i, tok in zip(two_one.ids, two_one.tokens)]
+
+        text_field_12 = TextField(one_two, self.token_indexers)
+        text_field_21 = TextField(two_one, self.token_indexers)
+
+        fields = {"one_two": text_field_12, "two_one": text_field_21, "idx": MetadataField(idx)}
         if label is not None:
             fields["label"] = TensorField(torch.tensor(label, dtype=torch.float))
 

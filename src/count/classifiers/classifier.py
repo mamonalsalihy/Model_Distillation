@@ -13,7 +13,7 @@ import torch.nn as nn
 from allennlp.data import Vocabulary, TextFieldTensors
 from allennlp.data.fields import MetadataField
 from allennlp.modules import FeedForward
-from allennlp.training.metrics import SpearmanCorrelation, BooleanAccuracy
+from allennlp.training.metrics import SpearmanCorrelation, BooleanAccuracy, PearsonCorrelation
 from allennlp.nn.util import get_text_field_mask
 
 
@@ -165,6 +165,7 @@ class StsClassifier(Model):
 
         self.loss = nn.MSELoss(reduction="mean")
         self.spearman = SpearmanCorrelation()
+        self.pearson = PearsonCorrelation()
 
     @staticmethod
     def sum(seq):
@@ -202,27 +203,28 @@ class StsClassifier(Model):
     @overrides
     def forward(
         self,
-        sentence1: TextFieldTensors,
-        sentence2: TextFieldTensors,
+        one_two: TextFieldTensors,
+        two_one: TextFieldTensors,
         idx: torch.Tensor,
         label: torch.FloatTensor,
     ) -> Dict[str, torch.Tensor]:
 
         # encode both sentences
-        s1 = self.encode_sentence(sentence1)  # [B, D]
-        s2 = self.encode_sentence(sentence2)  # [B, D]
+        s1 = self.encode_sentence(one_two)  # [B, D]
+        s2 = self.encode_sentence(two_one)  # [B, D]
 
         # project into label space
         predictions = self.regression_head(torch.cat([s1, s2], dim=-1))  # [B]
 
         # clip values from 0 to 5
         # torch.clip(predictions, min=0, max=5)
-        predictions = self.scale_one_to_five(predictions)
+        # predictions = self.scale_one_to_five(predictions)
 
         # calculate loss & metrics
         if label.max() >= 0:
             loss = self.loss(predictions, label.view(-1, 1))
             self.spearman(predictions, label.view(-1, 1))
+            self.pearson(predictions, label.view(-1, 1))
 
         return {"loss": loss, "preds": predictions, "idx": idx}
 
@@ -235,4 +237,7 @@ class StsClassifier(Model):
         return output_dict
 
     def get_metrics(self, reset: bool = False):
-        return {"spearman": self.spearman.get_metric(reset)}
+        return {
+            "spearman": self.spearman.get_metric(reset),
+            "pearson": self.pearson.get_metric(reset),
+        }

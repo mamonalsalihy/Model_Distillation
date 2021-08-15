@@ -3,8 +3,8 @@
 local root = '/home/offendo/src/the-count/';
 
 // Training
-local lr = 1e-5;
-local decay = 5e-4;
+local lr = 1e-4;
+local decay = 1e-3;
 local batch_size = 64;
 local max_instances = null;
 local max_instances_memory = null;
@@ -21,7 +21,7 @@ local cuda_devices = [0, 1];
 local cuda_device = 0;
 
 local reader = {
-  type: 'cola-reader',
+  type: 'sts-reader',
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
 };
@@ -35,23 +35,21 @@ local reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'cola-classifier',
+    type: 'sts-classifier',
     model: {
       type: 'from_archive',
       archive_file: model_path,
     },
     embedding_dim: embed_dim,
-    feedforward: {
-      num_layers: num_head_layers,
-      input_dim: embed_dim,
-      hidden_dims: [embed_dim * 4, embed_dim],
-      activations: 'relu',
-      dropout: dropout,
-    },
-    metrics: {
-      mcc: { type: 'mcc' },
-    },
-    num_labels: 2,
+    // feedforward: {
+    //   num_layers: num_head_layers,
+    //   input_dim: embed_dim,
+    //   hidden_dims: [embed_dim * 2, embed_dim],
+    //   activations: 'relu',
+    //   dropout: dropout,
+    // },
+    // freeze: true,
+    pool_method: 'cls',
   },
   train_data_path: 'train',
   validation_data_path: 'validation',
@@ -74,7 +72,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+mcc',
+    validation_metric: '+spearman',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,

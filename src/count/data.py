@@ -172,6 +172,38 @@ class ColaReader(DatasetReader):
             yield self.text_to_instance(text, idx, label)
 
 
+@DatasetReader.register("sts-reader", exist_ok=True)
+class StsReader(DatasetReader):
+    def __init__(
+        self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        self.dataset = load_dataset("glue", "stsb")
+
+    def text_to_instance(self, sent1, sent2, idx, label=None) -> Instance:
+        sent1 = self.tokenizer.encode(sent1)
+        sent2 = self.tokenizer.encode(sent2)
+        tok1 = [Token(tok, idx=i) for i, tok in zip(sent1.ids, sent1.tokens)]
+        tok2 = [Token(tok, idx=i) for i, tok in zip(sent2.ids, sent2.tokens)]
+        text_field_1 = TextField(tok1, self.token_indexers)
+        text_field_2 = TextField(tok2, self.token_indexers)
+        fields = {"sentence1": text_field_1, "sentence2": text_field_2, "idx": MetadataField(idx)}
+        if label is not None:
+            fields["label"] = TensorField(torch.tensor(label, dtype=torch.float))
+
+        return Instance(fields)
+
+    def _read(self, file_path):
+        for item in self.dataset[file_path]:
+            sent1: str = item["sentence1"]
+            sent2: str = item["sentence2"]
+            label: float = item.get("label", None)
+            idx: int = item["idx"]
+            yield self.text_to_instance(sent1, sent2, idx, label)
+
+
 if __name__ == "__main__":
     # reader = WikiTextReader(
     #     sequence_length=4,

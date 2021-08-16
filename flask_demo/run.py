@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--archive-dir', metavar="archive_dir", type=str, required=True)
     parser.add_argument('-m', '--max', metavar="max", type=int, required=False, default=100)
     parser.add_argument('-b', '--backwards', metavar='backwards', type=bool, required=False, default=False)
-    parser.add_argument("-temp", metavar='temperature', type=float, required=False, default=1.0)
+    parser.add_argument("--temperature", metavar='temperature', type=float, required=False, default=1.0)
     args = parser.parse_args()
 
     app = contents.create_app(args)

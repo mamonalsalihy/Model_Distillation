@@ -37,7 +37,8 @@ from src.count.classifiers.metrics import MCC
 logger = logging.getLogger(__name__)
 
 
-class BaseClassifier(Model):
+@Model.register("glue-classifier", exist_ok=True)
+class GLUEClassifier(Model):
     def __init__(
         self,
         vocab: Vocabulary,
@@ -68,6 +69,8 @@ class BaseClassifier(Model):
         assert task in ["wnli", "stsb", "sst2", "cola"]
         self.task = task
 
+        num_sents = 1
+
         if task == "wnli":
             self.num_labels = 3
             self.loss = nn.CrossEntropyLoss(reduction="mean")
@@ -76,6 +79,7 @@ class BaseClassifier(Model):
             self.num_labels = 1
             self.loss = nn.MSELoss(reduction="mean")  # type: ignore
             self.metrics = {"pearsons": PearsonCorrelation(), "spearmans": SpearmanCorrelation()}
+            num_sents = 2
         elif task == "sst2":
             self.num_labels = 1
             self.loss = nn.MSELoss(reduction="mean")  # type: ignore
@@ -92,7 +96,7 @@ class BaseClassifier(Model):
             "stsb": self._stsb,
         }
 
-        self.head = nn.Linear(self.embedding_dim, self.num_labels)
+        self.head = nn.Linear(num_sents * self.embedding_dim, self.num_labels)
 
     @staticmethod
     def sum(seq):
@@ -191,7 +195,7 @@ class BaseClassifier(Model):
         s2 = self.encode_sentence(two_one)  # [B, D]
 
         # project into label space
-        predictions = self.regression_head(torch.cat([s1, s2], dim=-1))  # [B]
+        predictions = self.head(torch.cat([s1, s2], dim=-1))  # [B]
 
         # calculate loss & metrics
         if label.max() >= 0:
@@ -394,7 +398,7 @@ class StsClassifier(Model):
         s2 = self.encode_sentence(two_one)  # [B, D]
 
         # project into label space
-        predictions = self.regression_head(torch.cat([s1, s2], dim=-1))  # [B]
+        predictions = self.head(torch.cat([s1, s2], dim=-1))  # [B]
 
         # calculate loss & metrics
         if label.max() >= 0:

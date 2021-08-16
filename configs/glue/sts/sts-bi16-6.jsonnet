@@ -15,13 +15,12 @@ local dropout = 0.4;
 // Model config
 local embed_dim = 768;
 local model_path = root + 'saved-experiments/teacher-bi16-student-6/';
-local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
 local cuda_device = 0;
 
 local reader = {
-  type: 'sts-reader',
+  type: 'stsb-reader',
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
 };
@@ -35,20 +34,14 @@ local reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'sts-classifier',
+    type: 'glue-classifier',
+    task: 'stsb',
     model: {
       type: 'from_archive',
       archive_file: model_path,
     },
     embedding_dim: embed_dim,
     feedforward: null,
-    // feedforward: {
-    //   num_layers: num_head_layers,
-    //   input_dim: embed_dim,
-    //   hidden_dims: [embed_dim * 2, embed_dim],
-    //   activations: 'relu',
-    //   dropout: dropout,
-    // },
     freeze: false,
     pool_method: 'mean',
   },

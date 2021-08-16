@@ -172,8 +172,8 @@ class CoLAReader(DatasetReader):
             yield self.text_to_instance(text, idx, label)
 
 
-@DatasetReader.register("sts-reader", exist_ok=True)
-class STSReader(DatasetReader):
+@DatasetReader.register("stsb-reader", exist_ok=True)
+class STSBReader(DatasetReader):
     def __init__(
         self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
     ):
@@ -215,10 +215,10 @@ class WNLIReader(DatasetReader):
         super().__init__(**kwargs)
         self.tokenizer = Tokenizer.from_file(tokenizer_path)
         self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
-        self.dataset = load_dataset("glue", "sst2")
+        self.dataset = load_dataset("glue", "wnli")
 
-    def text_to_instance(self, premise, hypothesis, idx, label=None) -> Instance:
-        prem_hyp = self.tokenizer.encode(premise, hypothesis)
+    def text_to_instance(self, sent1, sent2, idx, label=None) -> Instance:
+        prem_hyp = self.tokenizer.encode(sent1, sent2)
         prem_hyp = [Token(tok, idx=i) for i, tok in zip(prem_hyp.ids, prem_hyp.tokens)]
 
         text_field = TextField(prem_hyp, self.token_indexers)
@@ -231,11 +231,41 @@ class WNLIReader(DatasetReader):
 
     def _read(self, file_path):
         for item in self.dataset[file_path]:
-            premise: str = item["premise"]
-            hypothesis: str = item["hypothesis"]
+            sent1: str = item["sent1"]
+            sent2: str = item["sent2"]
             label: float = item.get("label", None)
             idx: int = item["idx"]
-            yield self.text_to_instance(premise, hypothesis, idx, label)
+            yield self.text_to_instance(sent1, sent2, idx, label)
+
+
+@DatasetReader.register("sst2-reader", exist_ok=True)
+class SST2Reader(DatasetReader):
+    def __init__(
+        self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        self.dataset = load_dataset("glue", "sst2")
+
+    def text_to_instance(self, sentence, idx, label=None) -> Instance:
+        tokens = self.tokenizer.encode(sentence)
+        tokens = [Token(tok, idx=i) for i, tok in zip(tokens.ids, tokens.tokens)]
+
+        text_field = TextField(tokens, self.token_indexers)
+
+        fields: Dict[str, Field] = {"tokens": text_field, "idx": MetadataField(idx)}
+        if label is not None:
+            fields["label"] = TensorField(torch.tensor(label, dtype=torch.float))
+
+        return Instance(fields)
+
+    def _read(self, file_path):
+        for item in self.dataset[file_path]:
+            sentence: str = item["sentence"]
+            label: float = item.get("label", None)
+            idx: int = item["idx"]
+            yield self.text_to_instance(sentence, idx, label)
 
 
 if __name__ == "__main__":
@@ -248,7 +278,7 @@ if __name__ == "__main__":
     #     exclusive=False,
     # )
 
-    reader = ColaReader("../../wordpiece-tokenizer.json")
+    reader = CoLAReader("../../wordpiece-tokenizer.json")
 
     loader = MultiProcessDataLoader(
         reader,

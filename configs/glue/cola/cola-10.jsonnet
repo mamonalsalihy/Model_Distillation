@@ -14,14 +14,14 @@ local dropout = 0.4;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/teacher-16-student-6/';
+local model_path = root + 'saved-experiments/10-layer';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
 local cuda_device = 0;
 
 local reader = {
-  type: 'stsb-reader',
+  type: 'cola-reader',
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
 };
@@ -35,8 +35,7 @@ local reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'glue-classifier',
-    task: 'stsb',
+    type: 'glue-classifier', task: 'cola',
     model: {
       type: 'from_archive',
       archive_file: model_path,
@@ -67,7 +66,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+spearman',
+    validation_metric: '+mcc',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,

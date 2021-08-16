@@ -1,20 +1,20 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
-local lr = 5e-6;
-local decay = 1e-2;
-local batch_size = 32;
+local lr = 1e-5;
+local decay = 1e-4;
+local batch_size = 64;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 50;
 local patience = 20;
-local dropout = 0.5;
+local dropout = 0.4;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/2-layer/';
+local model_path = root + 'saved-experiments/teacher-bi16-student-6/';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
@@ -41,6 +41,7 @@ local reader = {
       archive_file: model_path,
     },
     embedding_dim: embed_dim,
+    feedforward: null,
     // feedforward: {
     //   num_layers: num_head_layers,
     //   input_dim: embed_dim,
@@ -48,7 +49,7 @@ local reader = {
     //   activations: 'relu',
     //   dropout: dropout,
     // },
-    freeze: true,
+    freeze: false,
     pool_method: 'mean',
   },
   train_data_path: 'train',

@@ -44,7 +44,6 @@ class LMInference:
                 output = self.model.forward(x, 1.0)
             # output = self.model.make_output_human_readable(output)
             #         backward = torch.flip(backward, dims=[0])
-            logits = torch.flip(output['logits'], dims=[0])
             logits = logits.view(1, -1, logits.size()[-1])
             tokens = torch.argmax(logits / temperature, dim=-1)
             new_id = tokens[:, -1].item()
@@ -60,8 +59,14 @@ class LMInference:
             x = torch.tensor(ids, dtype=torch.long, device=DEVICE).view(1, -1)
             with torch.no_grad():
                 output = self.model.forward(x, 1.0)
-            # output = self.model.make_output_human_readable(output)
             logits = output['logits']
+
+            # test feature: remove CLS and SEP token from possible prediction
+            # ===============================================================
+            logits[:, :, self.tokenizer.token_to_id("[CLS]")] = 0
+            logits[:, :, self.tokenizer.token_to_id("[SEP]")] = 0
+
+            logits = torch.flip(logits, dims=[0])
             logits = logits.view(1, -1, logits.size()[-1])
             tokens = torch.argmax(logits / temperature, dim=-1)
             new_id = tokens[:, 0].item()

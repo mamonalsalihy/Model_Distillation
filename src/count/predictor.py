@@ -32,9 +32,9 @@ class LMInference:
 
     def speak(self, text: str, n: int, temperature: float):
         if self.backwards:
-            self.speak_backwards(text=text, n=n, temperature=temperature)
+            return self.speak_backwards(text=text, n=n, temperature=temperature)
         else:
-            self.speak_forwards(text=text, n=n, temperature=temperature)
+            return self.speak_forwards(text=text, n=n, temperature=temperature)
 
     def speak_forwards(self, text: str, n: int, temperature: float):
         for i in range(n):
@@ -44,12 +44,12 @@ class LMInference:
                 output = self.model.forward(x, 1.0)
             # output = self.model.make_output_human_readable(output)
             #         backward = torch.flip(backward, dims=[0])
-            logits = logits.view(1, -1, logits.size()[-1])
+            logits = logits.view(1, -1, logits.size(-1))
             tokens = torch.argmax(logits / temperature, dim=-1)
             new_id = tokens[:, -1].item()
             ids.append(new_id)
             text = self.tokenizer.decode(ids)
-            if new_id == self.tokenizer.token_to_id("[CLS]"):
+            if new_id == self.tokenizer.token_to_id("[SEP]"):
                 return text
         return self.tokenizer.decode(ids)
 
@@ -61,16 +61,11 @@ class LMInference:
                 output = self.model.forward(x, 1.0)
             logits = output['logits']
 
-            # test feature: remove CLS and SEP token from possible prediction
-            # ===============================================================
-            logits[:, :, self.tokenizer.token_to_id("[CLS]")] = 0
-            logits[:, :, self.tokenizer.token_to_id("[SEP]")] = 0
-
-            logits = torch.flip(logits, dims=[0])
-            logits = logits.view(1, -1, logits.size()[-1])
+            logits = logits.view(1, -1, logits.size(-1))
             tokens = torch.argmax(logits / temperature, dim=-1)
-            new_id = tokens[:, 0].item()
-            ids.insert(0, new_id)
+            new_id = tokens[:, -1].item()
+            print(new_id)
+            ids.insert(1, new_id)
             text = self.tokenizer.decode(ids)
             if new_id == self.tokenizer.token_to_id("[CLS]"):
                 return text

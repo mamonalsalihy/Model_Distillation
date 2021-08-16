@@ -78,7 +78,7 @@ class GLUEClassifier(Model):
         elif task == "stsb":
             self.num_labels = 1
             self.loss = nn.MSELoss(reduction="mean")  # type: ignore
-            self.metrics = {"pearsons": PearsonCorrelation(), "spearmans": SpearmanCorrelation()}
+            self.metrics = {"pearson": PearsonCorrelation(), "spearman": SpearmanCorrelation()}
             num_sents = 2
         elif task == "sst2":
             self.num_labels = 1

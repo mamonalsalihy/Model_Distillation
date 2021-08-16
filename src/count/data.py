@@ -145,7 +145,7 @@ class WikiTextReader(DatasetReader):
 
 
 @DatasetReader.register("cola-reader", exist_ok=True)
-class ColaReader(DatasetReader):
+class CoLAReader(DatasetReader):
     def __init__(
         self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
     ):
@@ -173,7 +173,7 @@ class ColaReader(DatasetReader):
 
 
 @DatasetReader.register("sts-reader", exist_ok=True)
-class StsReader(DatasetReader):
+class STSReader(DatasetReader):
     def __init__(
         self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
     ):
@@ -205,6 +205,37 @@ class StsReader(DatasetReader):
             label: float = item.get("label", None)
             idx: int = item["idx"]
             yield self.text_to_instance(sent1, sent2, idx, label)
+
+
+@DatasetReader.register("wnli-reader", exist_ok=True)
+class WNLIReader(DatasetReader):
+    def __init__(
+        self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        self.dataset = load_dataset("glue", "sst2")
+
+    def text_to_instance(self, premise, hypothesis, idx, label=None) -> Instance:
+        prem_hyp = self.tokenizer.encode(premise, hypothesis)
+        prem_hyp = [Token(tok, idx=i) for i, tok in zip(prem_hyp.ids, prem_hyp.tokens)]
+
+        text_field = TextField(prem_hyp, self.token_indexers)
+
+        fields: Dict[str, Field] = {"tokens": text_field, "idx": MetadataField(idx)}
+        if label is not None:
+            fields["label"] = TensorField(torch.tensor(label, dtype=torch.float))
+
+        return Instance(fields)
+
+    def _read(self, file_path):
+        for item in self.dataset[file_path]:
+            premise: str = item["premise"]
+            hypothesis: str = item["hypothesis"]
+            label: float = item.get("label", None)
+            idx: int = item["idx"]
+            yield self.text_to_instance(premise, hypothesis, idx, label)
 
 
 if __name__ == "__main__":

@@ -44,6 +44,7 @@ class LMInference:
                 output = self.model.forward(x, 1.0)
             # output = self.model.make_output_human_readable(output)
             #         backward = torch.flip(backward, dims=[0])
+            logits = output['logits']
             logits = logits.view(1, -1, logits.size(-1))
             tokens = torch.argmax(logits / temperature, dim=-1)
             new_id = tokens[:, -1].item()

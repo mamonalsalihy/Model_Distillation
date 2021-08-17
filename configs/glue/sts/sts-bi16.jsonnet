@@ -5,7 +5,7 @@ local root = '/data/users/nilay/the-count/';
 // Training
 local lr = 5e-5;
 local decay = 0e-4;
-local batch_size = 64;
+local batch_size = 16;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 10;
@@ -14,7 +14,8 @@ local dropout = 0.2;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/teacher-16-student-2/';
+local forward_model_path = root + 'saved-experiments/16-layer';
+local backward_model_path = root + 'saved-experiments/16-layer-reverse';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
@@ -38,8 +39,16 @@ local reader = {
     type: 'glue-classifier',
     task: 'stsb',
     model: {
-      type: 'from_archive',
-      archive_file: model_path,
+      type: 'dual-directional-language-model',
+      forward_model: {
+        type: 'from_archive',
+        archive_file: forward_model_path,
+      },
+      backward_model: {
+        type: 'from_archive',
+        archive_file: backward_model_path,
+      },
+      embedding_dim: embed_dim,
     },
     embedding_dim: embed_dim,
     feedforward: null,

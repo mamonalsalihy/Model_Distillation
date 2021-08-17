@@ -86,11 +86,11 @@ class DualDirectionalModel(Model):
         catted = torch.cat([forward, backward_align], dim=-1)  # [S, B, 2D]
         return self.combined_lm_head(catted)
 
-    def encode(self, tokens):
+    def encode(self, tokens, *args, **kwargs):
         """Runs the input tokens through the decoder to get a contextual representation."""
         # Get forward & backward representations
-        forward = self.forward_model.encode(tokens)
-        backward = self.backward_model.encode(tokens)
+        forward = self.forward_model.encode(tokens, *args, **kwargs)
+        backward = self.backward_model.encode(tokens, *args, **kwargs)
         return self.combine(forward, backward)
 
     def forward(

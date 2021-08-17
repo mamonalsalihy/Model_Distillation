@@ -14,7 +14,7 @@ local dropout = 0.2;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/teacher-16-student-2/';
+local model_path = root + 'saved-experiments/16_to_10/';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];

@@ -1,4 +1,3 @@
-
 // Paths
 local root = '/data/users/nilay/the-count/';
 // local root = '/home/offendo/src/the-count/';
@@ -15,7 +14,7 @@ local dropout = 0.2;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/16-layer';
+local model_path = root + 'saved-experiments/16_to_6_to_4/';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];

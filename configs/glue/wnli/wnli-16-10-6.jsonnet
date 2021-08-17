@@ -1,27 +1,27 @@
 // Paths
-// local root = '/data/users/nilay/the-count/';
-local root = '/home/offendo/src/the-count/';
+local root = '/data/users/nilay/the-count/';
+// local root = '/home/offendo/src/the-count/';
 
 // Training
-local lr = 1e-5;
-local decay = 5e-4;
+local lr = 5e-5;
+local decay = 0e-4;
 local batch_size = 64;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 50;
+local epochs = 10;
 local patience = 20;
-local dropout = 0.5;
+local dropout = 0.2;
 
 // Model config
 local embed_dim = 768;
-local model_path = root + 'saved-experiments/2-layer/';
+local model_path = root + 'saved-experiments/16_to_10_to_6/';
 local num_head_layers = 2;
 
 local cuda_devices = [0, 1];
 local cuda_device = 0;
 
 local reader = {
-  type: 'cola-reader',
+  type: 'wnli-reader',
   tokenizer_path: root + 'wordpiece-tokenizer.json',
   max_instances: max_instances,
 };
@@ -35,23 +35,16 @@ local reader = {
     oov_token: '[UNK]',
   },
   model: {
-    type: 'cola-classifier',
+    type: 'glue-classifier',
+    task: 'wnli',
     model: {
       type: 'from_archive',
       archive_file: model_path,
     },
     embedding_dim: embed_dim,
-    feedforward: {
-      num_layers: num_head_layers,
-      input_dim: embed_dim,
-      hidden_dims: [embed_dim * 4, embed_dim],
-      activations: 'relu',
-      dropout: dropout,
-    },
-    metrics: {
-      mcc: { type: 'mcc' },
-    },
-    num_labels: 2,
+    feedforward: null,
+    freeze: false,
+    pool_method: 'mean',
   },
   train_data_path: 'train',
   validation_data_path: 'validation',
@@ -74,7 +67,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+mcc',
+    validation_metric: '+spearman',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,
@@ -82,6 +75,11 @@ local reader = {
       type: 'adam',
       lr: lr,
       weight_decay: decay,
+    },
+    learning_rate_scheduler: {
+      type: 'linear_with_warmup',
+      warmup_steps: 90,
+      num_epochs: epochs,
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,

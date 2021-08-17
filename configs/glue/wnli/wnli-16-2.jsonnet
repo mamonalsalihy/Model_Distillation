@@ -3,14 +3,14 @@ local root = '/data/users/nilay/the-count/';
 // local root = '/home/offendo/src/the-count/';
 
 // Training
-local lr = 1e-5;
-local decay = 1e-4;
+local lr = 5e-5;
+local decay = 0e-4;
 local batch_size = 64;
 local max_instances = null;
 local max_instances_memory = null;
-local epochs = 50;
+local epochs = 10;
 local patience = 20;
-local dropout = 0.4;
+local dropout = 0.2;
 
 // Model config
 local embed_dim = 768;
@@ -67,7 +67,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+accuracy',
+    validation_metric: '+spearman',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,
@@ -75,6 +75,11 @@ local reader = {
       type: 'adam',
       lr: lr,
       weight_decay: decay,
+    },
+    learning_rate_scheduler: {
+      type: 'linear_with_warmup',
+      warmup_steps: 90,
+      num_epochs: epochs,
     },
     cuda_device: cuda_device,
     grad_norm: 0.25,

@@ -67,11 +67,11 @@ def create_app(args, test_config=None):
     def root():
         if request.method == "POST":
             if request.form.get('submit_button') == "baseline":
-                args.archive_dir = '../experiments/16-layer'
+                args.archive_dir = os.path.join(args.root, 'saved-experiments/16-layer')
             if request.form.get('submit_button') == 'best_kd':
-                args.archive_dir = '../experiments/138M-model'
+                args.archive_dir = os.path.join(args.root, 'saved-experiments/138M-model')
             if request.form.get('submit_button') == 'the_count':
-                args.archive_dir = '../experiments/count'
+                args.archive_dir = os.path.join(args.root, 'saved-experiments/count')
             inf = init_model(args)
             input_query = request.form.get("query")
             if input_query == '':

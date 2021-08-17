@@ -66,12 +66,12 @@ def create_app(args, test_config=None):
     @app.route('/', methods=["POST", "GET"])
     def root():
         if request.method == "POST":
-            if request.form.get('submit_button') == "baseline":
-                args.archive_dir = os.path.join(args.root, 'saved-experiments/16-layer')
-            if request.form.get('submit_button') == 'best_kd':
-                args.archive_dir = os.path.join(args.root, 'saved-experiments/138M-model')
-            if request.form.get('submit_button') == 'the_count':
-                args.archive_dir = os.path.join(args.root, 'saved-experiments/count')
+            if request.form.get('submit_button') == "16-layer-baseline":
+                args.archive_dir = '/data/users/nilay/the-count/saved-experiments/16-layer'
+            if request.form.get('submit_button') == '10-layer-baseline':
+                args.archive_dir = '/data/users/nilay/the-count/saved-experiments/10-layer'
+            if request.form.get('submit_button') == '6-layer-baseline':
+                args.archive_dir = '/data/users/nilay/the-count/saved-experiments/6-layer'
             inf = init_model(args)
             input_query = request.form.get("query")
             if input_query == '':

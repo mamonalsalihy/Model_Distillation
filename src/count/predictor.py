@@ -1,10 +1,12 @@
 # STL
+import random
 import sys
 from pathlib import Path
 import argparse
 
 # Torch
 import torch
+import torch.nn.functional as F
 from collections import namedtuple
 
 # AllenNLP
@@ -20,6 +22,7 @@ from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 from src.count.decoders.transformer_decoder import TransformerDecoder
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class LMInference:
     def __init__(self, model: Model, tokenizer: Tokenizer, backwards: bool = False):
@@ -46,8 +49,14 @@ class LMInference:
             #         backward = torch.flip(backward, dims=[0])
             logits = output['logits']
             logits = logits.view(1, -1, logits.size(-1))
-            tokens = torch.argmax(logits / temperature, dim=-1)
-            new_id = tokens[:, -1].item()
+
+            probs = F.softmax(logits / temperature, dim=-1).squeeze()
+
+            tokens = torch.multinomial(probs, num_samples=1)
+
+            tokens = torch.reshape(tokens, (-1,))
+
+            new_id = tokens[-1].item()
             ids.append(new_id)
             text = self.tokenizer.decode(ids)
             if new_id == self.tokenizer.token_to_id("[SEP]"):
@@ -63,8 +72,14 @@ class LMInference:
             logits = output['logits']
 
             logits = logits.view(1, -1, logits.size(-1))
-            tokens = torch.argmax(logits / temperature, dim=-1)
-            new_id = tokens[:, -1].item()
+
+            probs = F.softmax(logits / temperature, dim=-1).squeeze()
+
+            tokens = torch.multinomial(probs, num_samples=1)
+
+            tokens = torch.reshape(tokens, (-1,))
+
+            new_id = tokens[-1].item()
             print(new_id)
             ids.insert(1, new_id)
             text = self.tokenizer.decode(ids)

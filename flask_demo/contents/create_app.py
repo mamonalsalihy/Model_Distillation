@@ -101,6 +101,7 @@ def init_model(args):
     tokenizer = Tokenizer.from_file(args.tokenizer)
     params = Params.from_file(Path(args.archive_dir) / "config.json")
     model = Model.load(params, serialization_dir=args.archive_dir)
+    model = model.student if isinstance(model, TeacherStudent) else model
     inf = LMInference(model, tokenizer, args.backwards)
     return inf
 

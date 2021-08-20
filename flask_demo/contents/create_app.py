@@ -30,6 +30,7 @@ from src.count.tokenizer import WikiTextTokenizer
 from src.count.decoders.transformer_decoder import TransformerDecoder
 from src.count.models.teacher_student import TeacherStudent
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
+from src.count.models.dual_directional import DualDirectionalModel
 from src.count.predictor import LMInference
 
 

@@ -24,6 +24,7 @@ from tokenizers import Tokenizer
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 # Local
+from src.count.data import *
 from src.count import config
 from src.count.tokenizer import WikiTextTokenizer
 from src.count.decoders.transformer_decoder import TransformerDecoder

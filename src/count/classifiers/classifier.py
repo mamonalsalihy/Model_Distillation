@@ -18,6 +18,7 @@ from allennlp.training.metrics import (
     BooleanAccuracy,
     PearsonCorrelation,
     CategoricalAccuracy,
+    F1Measure,
 )
 from allennlp.nn.util import get_text_field_mask
 
@@ -34,6 +35,7 @@ except NameError:
 # Local
 from src.count.classifiers.metrics import MCC  # type: ignore
 from src.count.models.teacher_student import TeacherStudent  # type: ignore
+from src.count.models.dual_directional import DualDirectionalModel
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +62,13 @@ class GLUEClassifier(Model):
             self.model = model.student
         else:
             self.model = model
+
+        if isinstance(self.model, DualDirectionalModel):
+            self.embedding_dim = 2 * embedding_dim
+        else:
+            self.embedding_dim = embedding_dim
         self.feedforward = feedforward
         self.num_labels = num_labels
-        self.embedding_dim = embedding_dim
 
         if pool_method == "sum":
             self.pooler = self.sum
@@ -71,24 +77,33 @@ class GLUEClassifier(Model):
         elif pool_method == "max":
             self.pooler = self.max
 
-        assert task in ["wnli", "stsb", "sst2", "cola"]
+        assert task in ["wnli", "rte", "stsb", "sst2", "cola", "mrpc"]
         self.task = task
 
         num_sents = 1
 
         if task == "wnli":
-            self.num_labels = 3
+            self.num_labels = 2
             self.loss = nn.CrossEntropyLoss(reduction="mean")
-            self.metrics = {"accuracy": CategoricalAccuracy()}
+            self.metrics = {"accuracy": BooleanAccuracy()}
+        elif task == "rte":
+            self.num_labels = 2
+            self.loss = nn.CrossEntropyLoss(reduction="mean")
+            self.metrics = {"accuracy": BooleanAccuracy()}
         elif task == "stsb":
             self.num_labels = 1
             self.loss = nn.MSELoss(reduction="mean")  # type: ignore
             self.metrics = {"pearson": PearsonCorrelation(), "spearman": SpearmanCorrelation()}
             num_sents = 2
+        elif task == 'mrpc':
+            self.num_labels = 2
+            self.loss = nn.CrossEntropyLoss(reduction='mean')
+            self.metrics = {'f1': F1Measure(positive_label=1), 'accuracy': CategoricalAccuracy()}
+            num_sents = 2
         elif task == "sst2":
-            self.num_labels = 1
-            self.loss = nn.MSELoss(reduction="mean")  # type: ignore
-            self.metrics = {"accuracy": CategoricalAccuracy()}
+            self.num_labels = 2
+            self.loss = nn.CrossEntropyLoss(reduction="mean")  # type: ignore
+            self.metrics = {"accuracy": BooleanAccuracy()}
         elif task == "cola":
             self.num_labels = 2
             self.loss = nn.CrossEntropyLoss(reduction="mean")
@@ -97,8 +112,10 @@ class GLUEClassifier(Model):
         self.forward_map: Dict[str, Callable] = {
             "cola": self._cola,
             "wnli": self._wnli,
+            "rte": self._rte,
             "sst2": self._sst2,
             "stsb": self._stsb,
+            "mrpc": self._mrpc,
         }
 
         self.head = nn.Linear(num_sents * self.embedding_dim, self.num_labels)
@@ -129,6 +146,28 @@ class GLUEClassifier(Model):
         return hidden
 
     def _cola(self, tokens, idx, label):
+        hidden = self.encode_sentence(tokens)
+
+        # head
+        logits = self.head(hidden)  # [B, 2]
+        predictions = torch.argmax(logits, dim=-1)
+
+        # loss & metrics
+        if label.max() >= 0:
+            loss = self.loss(logits, label)
+            for k, met in self.metrics.items():
+                met(predictions, label)
+        else:
+            loss = torch.tensor(0.0, device=hidden.device)
+
+        return {
+            "loss": loss,
+            "logits": logits,
+            "preds": predictions,
+            "idx": idx,
+        }
+
+    def _rte(self, tokens, idx, label):
         hidden = self.encode_sentence(tokens)
 
         # head
@@ -210,6 +249,22 @@ class GLUEClassifier(Model):
 
         return {"loss": loss, "preds": predictions, "idx": idx}
 
+    def _mrpc(self, one_two, two_one, idx, label):
+        # encode both sentences
+        s1 = self.encode_sentence(one_two)  # [B, D]
+        s2 = self.encode_sentence(two_one)  # [B, D]
+
+        # project into label space
+        logits = self.head(torch.cat([s1, s2], dim=-1))  # [B, 2]
+        predictions = torch.argmax(logits, dim=-1)
+        # calculate loss & metrics
+        if label.max() >= 0:
+            loss = self.loss(logits, label)
+            for k, met in self.metrics.items():
+                met(logits, label)
+
+        return {"loss": loss, "preds": predictions, "idx": idx}
+
     @overrides
     def forward(self, *args, **kwargs) -> Dict[str, Any]:
         return self.forward_map[self.task](*args, **kwargs)
@@ -223,4 +278,4 @@ class GLUEClassifier(Model):
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {k: v.get_metric(reset) for k, v in self.metrics.items()}
+        return {k: (v.get_metric(reset) if k != 'f1' else v.get_metric(reset)['f1']) for k, v in self.metrics.items()}

@@ -91,7 +91,15 @@ class DualDirectionalModel(Model):
         # Get forward & backward representations
         forward = self.forward_model.encode(tokens, *args, **kwargs)
         backward = self.backward_model.encode(tokens, *args, **kwargs)
-        return self.combine(forward, backward)
+        backward = torch.flip(backward, dims=[0])  # flip along sequence axis
+
+        # Align the backward embeddings to the forward ones
+        backward_align = torch.zeros_like(forward)
+        backward_align[:-1, :, :] = backward[1:, :, :]
+
+        # Concatenate
+        catted = torch.cat([forward, backward_align], dim=-1)  # [S, B, 2D]
+        return catted
 
     def forward(
         self,

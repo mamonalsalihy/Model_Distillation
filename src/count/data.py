@@ -206,6 +206,35 @@ class STSBReader(DatasetReader):
             idx: int = item["idx"]
             yield self.text_to_instance(sent1, sent2, idx, label)
 
+@DatasetReader.register("rte-reader", exist_ok=True)
+class RTEReader(DatasetReader):
+    def __init__(
+        self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        self.dataset = load_dataset("glue", "rte")
+
+    def text_to_instance(self, sent1, sent2, idx, label=None) -> Instance:
+        prem_hyp = self.tokenizer.encode(sent1, sent2)
+        prem_hyp = [Token(tok, idx=i) for i, tok in zip(prem_hyp.ids, prem_hyp.tokens)]
+
+        text_field = TextField(prem_hyp, self.token_indexers)
+
+        fields: Dict[str, Field] = {"tokens": text_field, "idx": MetadataField(idx)}
+        if label is not None:
+            fields["label"] = LabelField(label, skip_indexing=True)
+
+        return Instance(fields)
+
+    def _read(self, file_path):
+        for item in self.dataset[file_path]:
+            sent1: str = item["sentence1"]
+            sent2: str = item["sentence2"]
+            label: int = int(item.get("label", -1))
+            idx: int = item["idx"]
+            yield self.text_to_instance(sent1, sent2, idx, label)
 
 @DatasetReader.register("wnli-reader", exist_ok=True)
 class WNLIReader(DatasetReader):
@@ -225,15 +254,15 @@ class WNLIReader(DatasetReader):
 
         fields: Dict[str, Field] = {"tokens": text_field, "idx": MetadataField(idx)}
         if label is not None:
-            fields["label"] = TensorField(torch.tensor(label, dtype=torch.float))
+            fields["label"] = LabelField(label, skip_indexing=True)
 
         return Instance(fields)
 
     def _read(self, file_path):
         for item in self.dataset[file_path]:
-            sent1: str = item["sent1"]
-            sent2: str = item["sent2"]
-            label: float = item.get("label", None)
+            sent1: str = item["sentence1"]
+            sent2: str = item["sentence2"]
+            label: int = int(item.get("label", -1))
             idx: int = item["idx"]
             yield self.text_to_instance(sent1, sent2, idx, label)
 
@@ -256,7 +285,7 @@ class SST2Reader(DatasetReader):
 
         fields: Dict[str, Field] = {"tokens": text_field, "idx": MetadataField(idx)}
         if label is not None:
-            fields["label"] = TensorField(torch.tensor(label, dtype=torch.float))
+            fields["label"] = LabelField(label, skip_indexing=True)
 
         return Instance(fields)
 
@@ -266,6 +295,40 @@ class SST2Reader(DatasetReader):
             label: float = item.get("label", None)
             idx: int = item["idx"]
             yield self.text_to_instance(sentence, idx, label)
+
+@DatasetReader.register("mrpc-reader", exist_ok=True)
+class MRPCReader(DatasetReader):
+    def __init__(
+        self, tokenizer_path: str, token_indexers: Dict[str, TokenIndexer] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
+        self.dataset = load_dataset("glue", "mrpc")
+
+    def text_to_instance(self, sent1, sent2, idx, label=None) -> Instance:
+        one_two = self.tokenizer.encode(sent1, sent2)
+        one_two = [Token(tok, idx=i) for i, tok in zip(one_two.ids, one_two.tokens)]
+
+        two_one = self.tokenizer.encode(sent2, sent1)
+        two_one = [Token(tok, idx=i) for i, tok in zip(two_one.ids, two_one.tokens)]
+
+        text_field_12 = TextField(one_two, self.token_indexers)
+        text_field_21 = TextField(two_one, self.token_indexers)
+
+        fields = {"one_two": text_field_12, "two_one": text_field_21, "idx": MetadataField(idx)}
+        if label is not None:
+            fields["label"] = TensorField(torch.tensor(label, dtype=torch.long))
+
+        return Instance(fields)
+
+    def _read(self, file_path):
+        for item in self.dataset[file_path]:
+            sent1: str = item["sentence1"]
+            sent2: str = item["sentence2"]
+            label: int = item.get("label", None)
+            idx: int = item["idx"]
+            yield self.text_to_instance(sent1, sent2, idx, label)
 
 
 if __name__ == "__main__":
@@ -278,19 +341,24 @@ if __name__ == "__main__":
     #     exclusive=False,
     # )
 
-    reader = CoLAReader("../../wordpiece-tokenizer.json")
+    reader = WNLIReader("../../wordpiece-tokenizer.json")
 
     loader = MultiProcessDataLoader(
         reader,
         data_path="train",
-        batch_size=2,
+        batch_size=256,
     )
     vocab = Vocabulary.from_files(config.VOCAB_DIR, padding_token="[PAD]", oov_token="[UNK]")
     loader.index_with(vocab)
     print("Ready...")
+    total = 0
+    ones = 0
     for i in tqdm(loader):
-        print(i)
-        input()
+        ones += i['label'].sum().item()
+        total += i['label'].numel()
+
+    print(ones)
+    print(total)
 
     # Valid ratio: 1.1494
     # Test ratio:  1.1537

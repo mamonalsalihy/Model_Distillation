@@ -5,7 +5,7 @@ local root = '/data/users/nilay/the-count/';
 // Training
 local lr = 5e-5;
 local decay = 0e-4;
-local batch_size = 16;
+local batch_size = 32;
 local max_instances = null;
 local max_instances_memory = null;
 local epochs = 10;
@@ -76,7 +76,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+spearman',
+    validation_metric: '+accuracy',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,

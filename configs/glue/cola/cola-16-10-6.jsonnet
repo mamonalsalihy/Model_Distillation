@@ -67,7 +67,7 @@ local reader = {
   },
   trainer: {
     type: 'gradient_descent',
-    validation_metric: '+spearman',
+    validation_metric: '+mcc',
     num_epochs: epochs,
     patience: patience,
     run_sanity_checks: false,

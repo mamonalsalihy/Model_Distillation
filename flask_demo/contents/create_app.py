@@ -27,6 +27,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.count import config
 from src.count.tokenizer import WikiTextTokenizer
 from src.count.decoders.transformer_decoder import TransformerDecoder
+from src.count.models.teacher_student import TeacherStudent
 from src.count.models.simple_transformer import SimpleTransformerLanguageModel
 from src.count.predictor import LMInference
 
@@ -83,6 +84,12 @@ def create_app(args, test_config=None):
                 args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_6'
             if request.form.get('submit_button') == '16-to-4':
                 args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_4'
+
+            # bidirectional knowledge distillation models
+            # ===========================================
+            if request.form.get('submit_button') == '2x6-to-6':
+                args.archive_dir = '/data/users/aukking/Model_Distillation/saved-experiments/2x6-6-raw2'
+
             inf = init_model(args)
             input_query = request.form.get("query")
             if input_query == '':

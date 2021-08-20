@@ -87,10 +87,25 @@ def create_app(args, test_config=None):
             if request.form.get('submit_button') == '16-to-4':
                 args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_4'
 
+            # multi-step knowledge distillation models
+            # ========================================
+            if request.form.get('submit_button') == '16-to-10-to-6':
+                args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_10_to_6'
+            if request.form.get('submit_button') == '16-to-10-to-4':
+                args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_10_to_4'
+            if request.form.get('submit_button') == '16-to-6-to-4':
+                args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_6_to_4'
+            if request.form.get('submit_button') == '16-to-6-to-2':
+                args.archive_dir = '/data/users/malsalih/Model_Distillation/experiments/16_to_6_to_2'
+
             # bidirectional knowledge distillation models
             # ===========================================
             if request.form.get('submit_button') == '2x6-to-6':
                 args.archive_dir = '/data/users/aukking/Model_Distillation/saved-experiments/2x6-6-raw2'
+            if request.form.get('submit_button') == '2x6-to-4':
+                args.archive_dir = '/data/users/aukking/Model_Distillation/saved-experiments/2x6-4-raw2'
+            if request.form.get('submit_button') == '2x6-to-2':
+                args.archive_dir = '/data/users/aukking/Model_Distillation/saved-experiments/2x6-2-raw3'
 
             inf = init_model(args)
             input_query = request.form.get("query")
